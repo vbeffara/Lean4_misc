@@ -1,41 +1,38 @@
+import Mathlib
+import Untitled.Graphs.Map
+
+set_option autoImplicit false
+
 -- import graph_theory.pushforward graph_theory.path
 -- open function classical
 
--- variables {V V' V'' : Type*} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' → V''}
--- variables {G H : simple_graph V} {G' H' : simple_graph V'} {G'' : simple_graph V''}
+variable {V V' V'' : Type*} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' → V''}
+variable {G H : SimpleGraph V} {G' H' : SimpleGraph V'} {G'' : SimpleGraph V''}
 
--- namespace simple_graph
+namespace SimpleGraph
 
--- def adapted (f : V → V') (G : simple_graph V) : Prop :=
--- ∀ ⦃x y : V⦄, f x = f y → ∃ p : walk G x y, ∀ z ∈ p.support, f z = f y
+/-! A function is adapted to a graph if its level sets are connected -/
+def Adapted (G : SimpleGraph V) (f : V → V') : Prop :=
+  ∀ ⦃x y : V⦄, f x = f y → ∃ p : Walk G x y, ∀ z ∈ p.support, f z = f y
 
--- lemma merge_edge_adapted [decidable_eq V] {e : G.dart} : adapted (merge_edge e) G :=
--- begin
---   intros x y hxy, rcases e with ⟨⟨u,v⟩,e⟩, have : u ≠ v := G.ne_of_adj e,
---   have l₁ : ∀ {z}, z = u ∨ z = v → merge_edge ⟨⟨_,_⟩,e⟩ z = u :=
---     by { intros z hz, cases hz; simp [merge_edge,update,hz] },
---   have l₂ : ∀ {z}, ¬(z = u ∨ z = v) → merge_edge ⟨⟨_,_⟩,e⟩ z = z :=
---     by { simp [merge_edge,update], intros z hz h', simp [h'] at hz, contradiction },
---   by_cases hx : x = u ∨ x = v; by_cases hy : y = u ∨ y = v,
---   { cases hx; cases hy; substs x y,
---     { use walk.nil, intros z hz, simp at hz, rw hz },
---     { use walk.nil.cons e, intros z hz, simp at hz, cases hz; subst hz, exact hxy },
---     { use walk.nil.cons e.symm, intros z hz, simp at hz, cases hz; subst hz, exact hxy },
---     { use walk.nil, intros z hz, simp at hz, rw hz } },
---   { rw [l₁ hx, l₂ hy] at hxy, subst hxy, simp at hy, contradiction },
---   { rw [l₁ hy, l₂ hx] at hxy, subst hxy, simp at hx, contradiction },
---   { rw [l₂ hx, l₂ hy] at hxy, subst y, use walk.nil, intros z hz, simp at hz, rw hz }
--- end
+lemma merge_edge_adapted [DecidableEq V] {e : G.Dart} : G.Adapted (merge_edge e) := by
+  rintro x y hxy
+  by_cases hx : x = e.snd <;> by_cases hy : y = e.snd <;>
+    simp [merge_edge, Function.update, hx, hy] at hxy ⊢ <;> subst_vars
+  · use Walk.nil ; simp
+  · use Walk.nil.cons e.symm.is_adj ; simp
+  · use Walk.nil.cons e.is_adj ; simp
+  · use Walk.nil ; simp [hy]
 
--- namespace adapted
+-- namespace Adapted
 
--- lemma of_injective : injective f → adapted f G :=
+-- lemma of_injective : injective f → Adapted f G :=
 -- begin
 --   rintro hf x y h, have := hf h, subst this, use walk.nil,
 --   rintro z, simp only [walk.support_nil, list.mem_singleton], exact congr_arg f
 -- end
 
--- noncomputable def lift_path_aux (hf : adapted f G) (p : walk (map f G) x' y') :
+-- noncomputable def lift_path_aux (hf : Adapted f G) (p : walk (map f G) x' y') :
 --   Π (x y : V), f x = x' → f y = y' → {q : walk G x y // ∀ z ∈ q.support, f z ∈ p.support} :=
 -- begin
 --   induction p with a a b c h₁ p ih,
@@ -49,27 +46,27 @@
 --     { rw [walk.support_cons, list.tail_cons] at hz, right, exact (ih yy y h₄ rfl).prop z hz } }
 -- end
 
--- noncomputable def lift_path (hf : adapted f G) (p : walk (map f G) x' y') :
+-- noncomputable def lift_path (hf : Adapted f G) (p : walk (map f G) x' y') :
 --   Π (x y : V), f x = x' → f y = y' → walk G x y :=
 -- λ x y hx hy, (lift_path_aux hf p x y hx hy).val
 
--- lemma mem_lift_path {hf : adapted f G} {p : (map f G).walk x' y'} {hx : f x = x'} {hy : f y = y'} :
+-- lemma mem_lift_path {hf : Adapted f G} {p : (map f G).walk x' y'} {hx : f x = x'} {hy : f y = y'} :
 --   z ∈ (lift_path hf p x y hx hy).support → f z ∈ p.support :=
 -- (lift_path_aux hf p x y hx hy).prop z
 
--- noncomputable def lift_path' (hf : adapted f G) (p : walk (map f G) (f x) (f y)) : walk G x y :=
+-- noncomputable def lift_path' (hf : Adapted f G) (p : walk (map f G) (f x) (f y)) : walk G x y :=
 -- lift_path hf p x y rfl rfl
 
--- lemma mem_lift_path' {hf : adapted f G} {p : (map f G).walk (f x) (f y)} :
+-- lemma mem_lift_path' {hf : Adapted f G} {p : (map f G).walk (f x) (f y)} :
 --   z ∈ (lift_path' hf p).support → f z ∈ p.support :=
 -- mem_lift_path
 
--- lemma connected (hf : adapted f G) (hc : connected (map f G)) : preconnected G :=
+-- lemma connected (hf : Adapted f G) (hc : connected (map f G)) : preconnected G :=
 -- begin
 --   intros x y, obtain ⟨p⟩ := hc (f x) (f y), use lift_path' hf p
 -- end
 
--- lemma fmap (hf : adapted f G) {P} : adapted (select.fmap f P) (select (P ∘ f) G) :=
+-- lemma fmap (hf : Adapted f G) {P} : Adapted (select.fmap f P) (select (P ∘ f) G) :=
 -- begin
 --   rintro ⟨x,hx⟩ ⟨y,hy⟩ hxy, simp only [select.fmap, subtype.coe_mk] at hxy,
 --   obtain ⟨p,hp⟩ := hf hxy, refine ⟨select.push_walk p _, _⟩,
@@ -78,25 +75,25 @@
 --   exact hp z (select.mem_push_walk.mp h)
 -- end
 
--- lemma comp_push : adapted f G → adapted g (map f G) → adapted (g ∘ f) G :=
+-- lemma comp_push : Adapted f G → Adapted g (map f G) → Adapted (g ∘ f) G :=
 -- begin
 --   rintro hf hg x y hxy, obtain ⟨p, hp⟩ := hg hxy,
---   exact ⟨adapted.lift_path' hf p, λ z hz, hp (f z) (adapted.mem_lift_path' hz)⟩,
+--   exact ⟨Adapted.lift_path' hf p, λ z hz, hp (f z) (Adapted.mem_lift_path' hz)⟩,
 -- end
--- end adapted
+-- end Adapted
 
--- def is_contraction (G : simple_graph V) (G' : simple_graph V') : Prop :=
--- ∃ φ : V' → V, surjective φ ∧ adapted φ G' ∧ G = map φ G'
+-- def is_contraction (G : SimpleGraph V) (G' : SimpleGraph V') : Prop :=
+-- ∃ φ : V' → V, surjective φ ∧ Adapted φ G' ∧ G = map φ G'
 
 -- infix ` ≼c `:50 := is_contraction
 
 -- namespace is_contraction
 
 -- @[refl] lemma refl : G ≼c G :=
--- ⟨id,surjective_id,adapted.of_injective injective_id,map.id.symm⟩
+-- ⟨id,surjective_id,Adapted.of_injective injective_id,map.id.symm⟩
 
 -- lemma of_iso : G ≃g G' → G ≼c G' :=
--- λ φ, let ψ := φ.symm in ⟨ψ, ψ.surjective, adapted.of_injective ψ.injective, map.from_iso ψ⟩
+-- λ φ, let ψ := φ.symm in ⟨ψ, ψ.surjective, Adapted.of_injective ψ.injective, map.from_iso ψ⟩
 
 -- @[trans] lemma trans : G ≼c G' → G' ≼c G'' → G ≼c G'' :=
 -- begin
@@ -115,7 +112,7 @@
 --   { rintros ⟨h₄,x,y,⟨-,-,h₇⟩,rfl,rfl⟩, cases h₇, contradiction, exact h₇ }
 -- end
 
--- lemma le_left_aux2 {f : V → V'} (h₁ : H' ≤ map f G) (h₂ : surjective f) (h₃ : adapted f G) :
+-- lemma le_left_aux2 {f : V → V'} (h₁ : H' ≤ map f G) (h₂ : surjective f) (h₃ : Adapted f G) :
 --   H' ≼c G ⊓ pull' f H' :=
 -- begin
 --   refine ⟨f,h₂,_,le_left_aux h₁⟩,
@@ -130,7 +127,7 @@
 --     intros z h, cases h, rwa h, exact h₉ z h }
 -- end
 
--- lemma le_left : H ≤ G → G ≼c G' → ∃ H' : simple_graph V', H ≼c H' ∧ H' ≤ G' :=
+-- lemma le_left : H ≤ G → G ≼c G' → ∃ H' : SimpleGraph V', H ≼c H' ∧ H' ≤ G' :=
 -- by { rintros h₁ ⟨f,h₂,h₃,rfl⟩, exact ⟨G' ⊓ pull' f H, le_left_aux2 h₁ h₂ h₃, λ x y h, h.1⟩ }
 
 -- lemma select_left {P : V → Prop} : G ≼c G' -> ∃ P' : V' → Prop, select P G ≼c select P' G' :=
@@ -149,4 +146,5 @@
 -- end
 
 -- end is_contraction
--- end simple_graph
+
+end SimpleGraph

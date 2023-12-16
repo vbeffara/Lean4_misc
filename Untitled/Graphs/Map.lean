@@ -1,13 +1,18 @@
--- import combinatorics.simple_graph.basic combinatorics.simple_graph.connectivity data.set.basic
+import Mathlib
+
+set_option autoImplicit false
+
+-- import combinatorics.SimpleGraph.basic combinatorics.SimpleGraph.connectivity data.set.basic
 -- import graph_theory.basic
--- open function set classical
 
--- variables {V V' V'' : Type*} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' → V''}
--- variables {G G₁ G₂ : simple_graph V} {G' G'₁ G'₂ : simple_graph V'} {G'' : simple_graph V''}
+open Function Set Classical
 
--- namespace simple_graph
+variable {V V' V'' : Type*} {x y z : V} {x' y' z' : V'} {f : V → V'} {g : V' → V''}
+variable {G G₁ G₂ : SimpleGraph V} {G' G'₁ G'₂ : SimpleGraph V'} {G'' : SimpleGraph V''}
 
--- def pull (f : V → V') (G' : simple_graph V') : simple_graph V :=
+namespace SimpleGraph
+
+-- def pull (f : V → V') (G' : SimpleGraph V') : SimpleGraph V :=
 -- { adj := G'.adj on f,
 --   symm := λ _ _ h, G'.symm h,
 --   loopless := λ _, G'.loopless _ }
@@ -16,7 +21,7 @@
 -- lemma comp : pull (g ∘ f) = pull f ∘ pull g :=
 -- by { ext x y, exact iff.rfl }
 
--- def to_iso (f : V ≃ V') (G' : simple_graph V') : pull f G' ≃g G' :=
+-- def to_iso (f : V ≃ V') (G' : SimpleGraph V') : pull f G' ≃g G' :=
 -- ⟨f,λ x y, iff.rfl⟩
 
 -- lemma from_iso (φ : G ≃g G') : pull φ G' = G :=
@@ -27,7 +32,7 @@
 -- end pull
 
 -- -- TODO: this is an alternative definition for pull
--- def pull' (f : V → V') (G' : simple_graph V') : simple_graph V :=
+-- def pull' (f : V → V') (G' : SimpleGraph V') : SimpleGraph V :=
 -- { adj := λ x y, x ≠ y ∧ (f x = f y ∨ G'.adj (f x) (f y)),
 --   symm := λ x y ⟨h₁,h₂⟩, by { refine ⟨h₁.symm,_⟩, cases h₂, left, exact h₂.symm,
 --     right, exact h₂.symm },
@@ -48,11 +53,11 @@
 -- lemma iff_pull_of_inj (hf : injective f) : pull f G' = pull' f G' :=
 -- begin
 --   ext x y, split,
---   { intro h₁, refine ⟨simple_graph.ne_of_adj _ h₁,_⟩, right, exact h₁ },
+--   { intro h₁, refine ⟨SimpleGraph.ne_of_adj _ h₁,_⟩, right, exact h₁ },
 --   { rintros ⟨h₁,h₂⟩, cases h₂, have := hf h₂, contradiction, exact h₂ }
 -- end
 
--- def to_iso (f : V ≃ V') (G' : simple_graph V') : pull' f G' ≃g G' :=
+-- def to_iso (f : V ≃ V') (G' : SimpleGraph V') : pull' f G' ≃g G' :=
 -- by { rewrite ← iff_pull_of_inj f.injective, apply pull.to_iso }
 
 -- lemma from_iso (φ : G ≃g G') : pull' φ G' = G :=
@@ -62,7 +67,7 @@
 -- by { rintros G H h x y ⟨h₁,h₂⟩, refine ⟨h₁,_⟩, cases h₂, left, exact h₂, right, exact h h₂ }
 -- end pull'
 
--- @[ext] def map (f : V → V') (G : simple_graph V) : simple_graph V' :=
+-- @[ext] def map (f : V → V') (G : SimpleGraph V) : SimpleGraph V' :=
 -- { adj := ne ⊓ relation.map G.adj f f,
 --   symm := λ x y ⟨h₁,u,v,h₂,h₃,h₄⟩, ⟨h₁.symm,v,u,h₂.symm,h₄,h₃⟩,
 --   loopless := λ _ ⟨h,_⟩, h rfl }
@@ -120,7 +125,7 @@
 --     exact G'.ne_of_adj h₁ (congr_arg f h₂), right, exact h₁ }
 -- end
 
--- def to_iso (f : V ≃ V') (G : simple_graph V) : G ≃g map f G :=
+-- def to_iso (f : V ≃ V') (G : SimpleGraph V) : G ≃g map f G :=
 -- by { convert ← pull.to_iso f _, apply left_inverse_of_injective f.left_inv.injective }
 
 -- lemma from_iso (φ : G ≃g G') : G' = map φ G :=
@@ -135,49 +140,49 @@
 
 -- end map
 
--- def merge_edge [decidable_eq V] {G : simple_graph V} (e : G.dart) : V → V :=
--- update id e.snd e.fst
+def merge_edge [DecidableEq V] {G : SimpleGraph V} (e : G.Dart) : V → V :=
+  update id e.snd e.fst
 
--- def contract_edge (G : simple_graph V) [decidable_eq V] (e : G.dart) :=
+-- def contract_edge (G : SimpleGraph V) [DecidableEq V] (e : G.Dart) :=
 -- G.map (merge_edge e)
 
 -- infix ` / ` := contract_edge
 
--- noncomputable instance {G : simple_graph V} [decidable_eq V] {e : G.dart} :
+-- noncomputable instance {G : SimpleGraph V} [DecidableEq V] {e : G.Dart} :
 --   decidable_rel (G/e).adj :=
 -- by { classical, apply_instance }
 
 -- namespace contract_edge
--- variables [fintype V] [decidable_eq V] [decidable_eq V'] [decidable_rel G.adj]
+-- variable [fintype V] [DecidableEq V] [DecidableEq V'] [decidable_rel G.adj]
 
--- @[reducible] def preserved (f : V → V') (G : simple_graph V) : Type* :=
--- {e : G.dart // f e.fst ≠ f e.snd}
+-- @[reducible] def preserved (f : V → V') (G : SimpleGraph V) : Type* :=
+-- {e : G.Dart // f e.fst ≠ f e.snd}
 
--- def proj_edge (e : G.dart) : preserved (merge_edge e) G → (G/e).dart :=
+-- def proj_edge (e : G.Dart) : preserved (merge_edge e) G → (G/e).Dart :=
 -- λ ⟨⟨⟨x,y⟩,hxy⟩,h₁⟩, ⟨(merge_edge e x, merge_edge e y), ⟨h₁,x,y,hxy,rfl,rfl⟩⟩
 
--- lemma proj_edge_surj {e : G.dart} : surjective (proj_edge e) :=
+-- lemma proj_edge_surj {e : G.Dart} : surjective (proj_edge e) :=
 -- begin
 --   rintro ⟨⟨x',y'⟩,⟨h₁,⟨x,y,h₂,h₃,h₄⟩⟩⟩, refine ⟨⟨⟨(x,y),h₂⟩,_⟩,_⟩,
 --   { rw [h₃,h₄], exact h₁ },
 --   { simp only [proj_edge, prod.mk.inj_iff], exact ⟨h₃,h₄⟩ }
 -- end
 
--- lemma fewer_edges {e : G.dart} [decidable_rel (G/e).adj] :
---   fintype.card (G/e).dart < fintype.card G.dart :=
--- calc fintype.card (G/e).dart ≤ fintype.card (preserved (merge_edge e) G) :
+-- lemma fewer_edges {e : G.Dart} [decidable_rel (G/e).adj] :
+--   fintype.card (G/e).Dart < fintype.card G.Dart :=
+-- calc fintype.card (G/e).Dart ≤ fintype.card (preserved (merge_edge e) G) :
 --   fintype.card_le_of_surjective _ proj_edge_surj
---                         ...  < fintype.card (G.dart) :
+--                         ...  < fintype.card (G.Dart) :
 --   by { apply fintype.card_lt_of_injective_of_not_mem _ subtype.coe_injective,
 --     swap, exact e, simp [merge_edge,update] }
 
 -- end contract_edge
 
--- def select (P : V → Prop) (G : simple_graph V) : simple_graph (subtype P) :=
+-- def select (P : V → Prop) (G : SimpleGraph V) : SimpleGraph (subtype P) :=
 -- pull subtype.val G
 
 -- namespace select
--- variables {P : V → Prop} {P' : V' → Prop}
+-- variable {P : V → Prop} {P' : V' → Prop}
 
 -- lemma mono {P : V → Prop} : monotone (select P) :=
 -- by { apply pull.mono }
@@ -224,7 +229,7 @@
 
 -- end is_smaller
 
--- def embed (f : V → V') : simple_graph V → simple_graph (range f) :=
+-- def embed (f : V → V') : SimpleGraph V → SimpleGraph (range f) :=
 -- select (range f) ∘ map f
 
 -- namespace embed
@@ -243,4 +248,5 @@
 -- select.mono map.le
 
 -- end embed
--- end simple_graph
+
+end SimpleGraph
