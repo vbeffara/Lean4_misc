@@ -67,10 +67,10 @@ namespace SimpleGraph
 -- by { rintros G H h x y ⟨h₁,h₂⟩, refine ⟨h₁,_⟩, cases h₂, left, exact h₂, right, exact h h₂ }
 -- end pull'
 
--- @[ext] def map (f : V → V') (G : SimpleGraph V) : SimpleGraph V' :=
--- { adj := ne ⊓ relation.map G.adj f f,
---   symm := λ x y ⟨h₁,u,v,h₂,h₃,h₄⟩, ⟨h₁.symm,v,u,h₂.symm,h₄,h₃⟩,
---   loopless := λ _ ⟨h,_⟩, h rfl }
+def map' (f : V → V') (G : SimpleGraph V) : SimpleGraph V' :=
+{ Adj := Ne ⊓ Relation.Map G.Adj f f,
+  symm := λ _ _ ⟨h₁, u, v, h₂, h₃, h₄⟩ => ⟨h₁.symm, v, u, h₂.symm, h₄, h₃⟩,
+  loopless := λ _ ⟨h, _⟩ => h rfl }
 
 -- namespace map
 -- noncomputable instance : decidable_rel (map f G).adj := by { classical, apply_instance }
@@ -143,16 +143,13 @@ namespace SimpleGraph
 def merge_edge [DecidableEq V] {G : SimpleGraph V} (e : G.Dart) : V → V :=
   update id e.snd e.fst
 
--- def contract_edge (G : SimpleGraph V) [DecidableEq V] (e : G.Dart) :=
--- G.map (merge_edge e)
+def contract_edge (G : SimpleGraph V) [DecidableEq V] (e : G.Dart) :=
+  G.map' (merge_edge e)
 
--- infix ` / ` := contract_edge
+infix:60 " /ₑ " => contract_edge
 
--- noncomputable instance {G : SimpleGraph V} [DecidableEq V] {e : G.Dart} :
---   decidable_rel (G/e).adj :=
--- by { classical, apply_instance }
+namespace contract_edge
 
--- namespace contract_edge
 -- variable [fintype V] [DecidableEq V] [DecidableEq V'] [decidable_rel G.adj]
 
 -- @[reducible] def preserved (f : V → V') (G : SimpleGraph V) : Type* :=
@@ -176,7 +173,7 @@ def merge_edge [DecidableEq V] {G : SimpleGraph V} (e : G.Dart) : V → V :=
 --   by { apply fintype.card_lt_of_injective_of_not_mem _ subtype.coe_injective,
 --     swap, exact e, simp [merge_edge,update] }
 
--- end contract_edge
+end contract_edge
 
 -- def select (P : V → Prop) (G : SimpleGraph V) : SimpleGraph (subtype P) :=
 -- pull subtype.val G

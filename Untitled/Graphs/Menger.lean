@@ -1,5 +1,6 @@
 import Mathlib
 import Untitled.Graphs.Contraction
+import Untitled.Graphs.Map
 
 set_option autoImplicit false
 
@@ -493,7 +494,8 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 --     exact (card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
 -- end
 
--- lemma induction_step (e : G.Dart) : isMenger (G/e) → isMenger (G-e) → isMenger G :=
+lemma induction_step (e : G.Dart) : isMenger (G /ₑ e) → isMenger (G -ₑ e) → isMenger G := by
+  sorry
 -- begin
 --   intros h_contract h_minus A B,
 
@@ -512,13 +514,14 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 -- end
 
 theorem Menger : isMenger G := by
-  induction' h : Fintype.card G.Dart with n ih
+  induction' h : Fintype.card G.Dart using Nat.strongInductionOn with n ih generalizing G
+  by_cases h : Fintype.card G.Dart = 0
   · simp [bot_iff_no_edge.mp h]
-  · have h1 : n.succ ≠ 0 := sorry
-    rw [← h] at h1
-    have h2 : ¬ IsEmpty G.Dart := by simpa [← Fintype.card_eq_zero_iff]
+  · have h2 : ¬ IsEmpty G.Dart := by simpa [← Fintype.card_eq_zero_iff]
     obtain ⟨e⟩ := not_isEmpty_iff.mp h2
-    sorry
+    apply induction_step e
+    · sorry
+    · sorry
 --   { resetI, by_cases (Fintype.card G.Dart = 0),
 --     { apply ih, rw h, linarith },
 --     { cases not_is_empty_iff.mp (h ∘ Fintype.card_eq_zero_iff.mpr) with e, apply induction_step e,
