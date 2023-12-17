@@ -3,7 +3,7 @@ import Untitled.Graphs.Contraction
 
 set_option autoImplicit false
 
-open Classical
+open Classical Function Finset
 
 -- import combinatorics.SimpleGraph.connectivity data.Finset data.setoid.basic
 -- import graph_theory.contraction graph_theory.pushforward graph_theory.basic graph_theory.walk
@@ -19,7 +19,7 @@ namespace SimpleGraph
 
 namespace Menger
 
-structure AB_Walk (G : SimpleGraph V) (A B : Set V) :=
+structure AB_Walk (G : SimpleGraph V) (A B : Finset V) :=
   (a b : V) (ha : a ∈ A) (hb : b ∈ B)
   (to_Walk : G.Walk a b)
 
@@ -129,9 +129,9 @@ lemma self : Separates G A B A := λ γ => ⟨γ.a, γ.ha, γ.to_Walk.start_mem_
 
 lemma inter_subset (h : Separates G A B X) : A ∩ B ⊆ X := by
   contrapose h
-  obtain ⟨x, h1, h2⟩ := Finset.not_subset.mp h
-  rw [Finset.mem_inter] at h1
-  simp only [Separates, Finset.mem_coe, not_forall, not_exists, not_and]
+  obtain ⟨x, h1, h2⟩ := not_subset.mp h
+  rw [mem_inter] at h1
+  simp only [Separates, mem_coe, not_forall, not_exists, not_and]
   exact ⟨⟨x, x, h1.1, h1.2, Walk.nil⟩, by simp [h2]⟩
 
 end Separates
@@ -191,7 +191,7 @@ lemma inter_le_min_cut : (A ∩ B).card ≤ min_cut G A B := by
   rw [min_cut, Nat.le_find_iff]
   rintro n hn ⟨⟨X, h⟩, h'⟩
   simp only [Separator.card] at h'
-  linarith [Finset.card_le_of_subset h.inter_subset]
+  linarith [card_le_of_subset h.inter_subset]
 
 end min_cut
 
@@ -218,36 +218,28 @@ lemma bot_iff_no_edge : Fintype.card G.Dart = 0 ↔ G = ⊥ where
 lemma bot_Separates_iff : Separates ⊥ A B X ↔ (A ∩ B) ⊆ X where
   mp := Separates.inter_subset
   mpr := λ h ⟨a, b, ha, hb, p⟩ => by cases p with
-    | nil => exact ⟨a, h <| Finset.mem_inter.mpr ⟨ha, hb⟩, Walk.mem_support_nil_iff.mpr rfl⟩
+    | nil => exact ⟨a, h <| mem_inter.mpr ⟨ha, hb⟩, Walk.mem_support_nil_iff.mpr rfl⟩
     | cons h' _ => cases h'
 
 lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card := by
   refine le_antisymm ?_ min_cut.inter_le_min_cut
   rw [min_cut, Nat.find_le_iff]
-  refine ⟨Finset.card (A ∩ B), le_rfl, ?_⟩
+  refine ⟨(A ∩ B).card, le_rfl, ?_⟩
   simpa only [is_cut_set_size] using ⟨⟨A ∩ B, bot_Separates_iff.mpr le_rfl⟩, rfl⟩
-
--- noncomputable def bot_path_set (A B : Finset V) :
---   {P : Finset (AB_Walk ⊥ A B) // pwd P ∧ P.card = (A ∩ B).card} :=
--- begin
---   let φ : A ∩ B → AB_Walk ⊥ A B := λ z, let h := mem_inter.mp z.prop in ⟨⟨walk.nil⟩,h.1,h.2⟩,
---   have φ_inj : injective φ := λ _ _ h, by { simp only [φ] at h, ext, exact h.1 },
---   refine ⟨image φ univ, _, _⟩,
---   { rintro ⟨⟨γ₁,h₁,h₂⟩,h₃⟩ ⟨⟨γ₂,h₄,h₅⟩,h₆⟩ h₇,
---     have nil₁ : γ₁ = Walk.nil γ₁.a := by { cases γ₁, cases γ₁_p, refl, exfalso, exact γ₁_p_h },
---     have nil₂ : γ₂ = Walk.nil γ₂.a := by { cases γ₂, cases γ₂_p, refl, exfalso, exact γ₂_p_h },
---     simp at h₇ ⊢, rw [nil₁,nil₂] at h₇ ⊢, cases h₇ with z h₇, simp at h₇, rw [←h₇.1,←h₇.2] },
---   { rw [card_image_of_injective univ φ_inj, card_univ],
---     convert Fintype.card_of_Finset (A ∩ B) _, intro z, simp, split,
---     { rintros ⟨h₁,h₂⟩, exact set.mem_sep h₁ h₂ },
---     { rintros h₁, exact h₁ } }
--- end
 
 @[simp] lemma isMenger_bot : isMenger (⊥ : SimpleGraph V) := by
   rintro A B
   rw [bot_min_cut]
-  sorry
--- by { rintro A B, rw bot_min_cut, exact (bot_path_set A B).exists_of_subtype }
+  let φ (z : (A ∩ B : Finset V)) : AB_Walk ⊥ A B :=
+    let h := mem_inter.mp z.prop ; ⟨z, z, h.1, h.2, Walk.nil⟩
+  have φ_inj : Injective φ := by intro u v h ; ext ; simp [φ] at h ; exact h.1
+  refine ⟨image φ univ, ?_, ?_⟩
+  · sorry
+--   { rintro ⟨⟨γ₁,h₁,h₂⟩,h₃⟩ ⟨⟨γ₂,h₄,h₅⟩,h₆⟩ h₇,
+--     have nil₁ : γ₁ = Walk.nil γ₁.a := by { cases γ₁, cases γ₁_p, refl, exfalso, exact γ₁_p_h },
+--     have nil₂ : γ₂ = Walk.nil γ₂.a := by { cases γ₂, cases γ₂_p, refl, exfalso, exact γ₂_p_h },
+--     simp at h₇ ⊢, rw [nil₁,nil₂] at h₇ ⊢, cases h₇ with z h₇, simp at h₇, rw [←h₇.1,←h₇.2] },
+  · simp [card_image_of_injective, φ_inj]
 
 -- lemma AB_lift_dis (P' : Finset (AB_Walk (map f G) (A.image f) (B.image f))) :
 --   pwd P' → pwd (P'.image (AB_Walk.lift f hf A B)) :=
@@ -458,7 +450,7 @@ lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card := by
 --     { apply ψ.left_inv.injective, apply Q_dis, use z, exact hz }
 --   },
 
---   refine ⟨R, R_dis, _⟩, rw Finset.card_image_of_injective _ Ψ_inj, convert Fintype.card_coe X
+--   refine ⟨R, R_dis, _⟩, rw card_image_of_injective _ Ψ_inj, convert Fintype.card_coe X
 -- end
 
 -- lemma sep_of_sep_in_merge : Separates (G/e) (image (merge_edge e) A) (image (merge_edge e) B) Y →
