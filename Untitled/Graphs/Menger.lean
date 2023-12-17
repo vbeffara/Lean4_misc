@@ -233,13 +233,15 @@ lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card := by
   let φ (z : (A ∩ B : Finset V)) : AB_Walk ⊥ A B :=
     let h := mem_inter.mp z.prop ; ⟨z, z, h.1, h.2, Walk.nil⟩
   have φ_inj : Injective φ := by intro u v h ; ext ; simp [φ] at h ; exact h.1
-  refine ⟨image φ univ, ?_, ?_⟩
-  · sorry
---   { rintro ⟨⟨γ₁,h₁,h₂⟩,h₃⟩ ⟨⟨γ₂,h₄,h₅⟩,h₆⟩ h₇,
---     have nil₁ : γ₁ = Walk.nil γ₁.a := by { cases γ₁, cases γ₁_p, refl, exfalso, exact γ₁_p_h },
---     have nil₂ : γ₂ = Walk.nil γ₂.a := by { cases γ₂, cases γ₂_p, refl, exfalso, exact γ₂_p_h },
---     simp at h₇ ⊢, rw [nil₁,nil₂] at h₇ ⊢, cases h₇ with z h₇, simp at h₇, rw [←h₇.1,←h₇.2] },
-  · simp [card_image_of_injective, φ_inj]
+  refine ⟨image φ univ, ?_, by simp [card_image_of_injective, φ_inj]⟩
+  rintro ⟨a, b, _, _, p⟩ hp ⟨a', b', _, _, q⟩ hq h
+  simp at hp hq h
+  rcases hp with ⟨rfl, -, h4⟩
+  rcases hq with ⟨rfl, -, h8⟩
+  subst_vars
+  simp [AB_Walk.Disjoint]
+  rintro rfl
+  simp at h
 
 -- lemma AB_lift_dis (P' : Finset (AB_Walk (map f G) (A.image f) (B.image f))) :
 --   pwd P' → pwd (P'.image (AB_Walk.lift f hf A B)) :=
@@ -255,25 +257,20 @@ lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card := by
 --   exact mem_image_of_mem f h.1, exact mem_image_of_mem f h.2
 -- end
 
--- def minus (G : SimpleGraph V) (e : G.Dart) : SimpleGraph V :=
--- G.delete_edges {e.edge}
+def minus (G : SimpleGraph V) (e : G.Dart) : SimpleGraph V :=
+  G.deleteEdges {e.edge}
 
--- infix `-` := minus
+infix:60 " -ₑ " => minus
 
--- noncomputable instance : DecidableRel (G-e).Adj := by { classical, apply_instance }
+lemma minus_le {e : G.Dart} : G -ₑ e ≤ G := SimpleGraph.deleteEdges_le _ _
 
--- lemma minus_le {e : G.Dart} : G-e ≤ G := λ x y h, h.1
-
--- lemma minus_lt_edges {e : G.Dart} : Fintype.card (G-e).Dart < Fintype.card G.Dart :=
--- begin
---   let φ : (G-e).Dart → G.Dart := λ e, ⟨⟨_,_⟩,e.is_Adj.1⟩,
---   have φ_inj : injective φ := by { rintro e₁ e₂ h, simp [φ] at h, exact e₁.ext e₂ h },
---   suffices : e ∉ set.range φ, refine Fintype.card_lt_of_injective_of_not_mem φ φ_inj this,
---   intro he, rw set.mem_range at he, choose e' he using he, rcases e' with ⟨⟨x,y⟩,he'⟩,
---   replace he := (Dart.ext_iff _ _).mp he, replace he := prod.ext_iff.mp he,
---   simp only at he, cases he, substs x y,
---   simp [minus] at he', simp [Dart.edge,sym2] at he', apply he'.2, refl
--- end
+lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card G.Dart := by
+  let φ (f : (G -ₑ e).Dart) : G.Dart := ⟨f.1, f.is_adj.1⟩
+  have φ_inj : Injective φ := by rintro e₁ e₂ h ; ext1 ; simpa [φ] using h
+  suffices e ∉ Set.range φ from Fintype.card_lt_of_injective_of_not_mem φ φ_inj this
+  rintro ⟨⟨⟨x, y⟩, he'⟩, he⟩
+  simp [Dart.ext_iff, Prod.ext_iff] at he
+  simp [minus, Dart.edge, he] at he'
 
 -- lemma sep_AB_of_sep₂_AX ⦃e : G.Dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X) :
 --   Separates G A B X → Separates (G-e) A X Z → Separates G A B Z :=
@@ -517,7 +514,11 @@ lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card := by
 theorem Menger : isMenger G := by
   induction' h : Fintype.card G.Dart with n ih
   · simp [bot_iff_no_edge.mp h]
-  · sorry
+  · have h1 : n.succ ≠ 0 := sorry
+    rw [← h] at h1
+    have h2 : ¬ IsEmpty G.Dart := by simpa [← Fintype.card_eq_zero_iff]
+    obtain ⟨e⟩ := not_isEmpty_iff.mp h2
+    sorry
 --   { resetI, by_cases (Fintype.card G.Dart = 0),
 --     { apply ih, rw h, linarith },
 --     { cases not_is_empty_iff.mp (h ∘ Fintype.card_eq_zero_iff.mpr) with e, apply induction_step e,
