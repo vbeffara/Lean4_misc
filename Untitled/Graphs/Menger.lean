@@ -183,8 +183,7 @@ noncomputable def set (G : SimpleGraph V) (A B : Finset V) :
 -- lemma le {X : separator G A B} : min_cut G A B ≤ X.card :=
 -- nat.find_le ⟨X, rfl⟩
 
--- lemma le' (sep : Separates G A B X) : min_cut G A B ≤ X.card :=
--- nat.find_le ⟨⟨X,sep⟩, rfl⟩
+lemma le' (sep : Separates G A B X) : min_cut G A B ≤ X.card := Nat.find_le ⟨⟨X,sep⟩, rfl⟩
 
 lemma inter_le_min_cut : (A ∩ B).card ≤ min_cut G A B := by
   rw [min_cut, Nat.le_find_iff]
@@ -449,8 +448,9 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
 --   refine ⟨R, R_dis, _⟩, rw card_image_of_injective _ Ψ_inj, convert Fintype.card_coe X
 -- end
 
--- lemma sep_of_sep_in_merge : Separates (G/e) (image (merge_edge e) A) (image (merge_edge e) B) Y →
---   Separates G A B (Y ∪ {e.snd}) :=
+lemma sep_of_sep_in_merge {e}
+    (Y_sep : Separates (G /ₑ e) (image (merge_edge e) A) (image (merge_edge e) B) Y) :
+    Separates G A B (Y ∪ {e.snd}) := sorry
 -- begin
 --   rintro Y_sep γ,
 --   choose z hz using Y_sep (γ.push (merge_edge e) A B),
@@ -466,31 +466,30 @@ lemma step_1 {e} (h_contract : isMenger (G /ₑ e))
     ∃ X : Finset V, e.fst ∈ X ∧ e.snd ∈ X ∧ Separates G A B X ∧ X.card = min_cut G A B := by
   let A₁ := image (merge_edge e) A
   let B₁ := image (merge_edge e) B
---   obtain ⟨Y, Y_eq_min₁⟩ := min_cut.set (G/e) A₁ B₁, let X := Y.to_Finset ∪ {e.snd},
+  obtain ⟨Y, Y_eq_min₁⟩ := min_cut.set (G /ₑ e) A₁ B₁
+  let X := Y.val ∪ {e.snd}
 
---   have Y_lt_min : Y.card < min_cut G A B :=
---   by {
+  have Y_lt_min : Y.card < min_cut G A B := sorry
 --     choose P₁ P₁_dis P₁_eq_min₁ using h_contract A₁ B₁,
 --     rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_Walk.lift_inj],
 --     apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted }
---   },
 
---   have X_sep_AB : Separates G A B X := sep_of_sep_in_merge Y.sep,
-
---   refine ⟨X, _, _, X_sep_AB, _⟩,
-
---   { rw [mem_union], left, by_contradiction,
---     suffices : Separates G A B Y.to_Finset, by { exact not_lt_of_le (min_cut.le' this) Y_lt_min },
+  have X_sep_AB : Separates G A B X := sep_of_sep_in_merge Y.prop
+  refine ⟨X, ?_, ?_, X_sep_AB, ?_⟩
+  · rw [mem_union]
+    left
+    by_contra
+    suffices Separates G A B Y.val from not_lt_of_le (min_cut.le' this) Y_lt_min
 --     intro p, choose z hz using Y.sep (p.push (merge_edge e) A B), use z,
 --     rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
 --     rw [AB_Walk.push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
 --     by_cases x = e.snd; simp [merge_edge,h] at hx₂,
 --     { rw [←hx₂] at hz₂, contradiction },
 --     { rwa [←hx₂] } },
---   { rw [mem_union,mem_singleton], right, refl },
---   { refine le_antisymm _ (min_cut.le' X_sep_AB),
---     exact (card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
-  sorry
+    sorry
+  · simp [mem_union, mem_singleton]
+  · refine le_antisymm ?_ (min_cut.le' X_sep_AB)
+    exact (card_union_le _ _).trans (Nat.succ_le_of_lt Y_lt_min)
 
 lemma induction_step (e : G.Dart) : isMenger (G /ₑ e) → isMenger (G -ₑ e) → isMenger G := by
   intro h_contract h_minus A B
