@@ -526,15 +526,7 @@ theorem Menger : isMenger G := by
   · simp [bot_iff_no_edge.mp h']
   · have h2 : ¬ IsEmpty G.Dart := by simpa [← Fintype.card_eq_zero_iff]
     obtain ⟨e⟩ := not_isEmpty_iff.mp h2
-    apply induction_step e
-    · refine ih _ ?_ rfl
-      sorry
-    · exact ih _ minus_lt_edges rfl
---   { resetI, by_cases (Fintype.card G.Dart = 0),
---     { apply ih, rw h, linarith },
---     { cases not_is_empty_iff.mp (h ∘ Fintype.card_eq_zero_iff.mpr) with e, apply induction_step e,
---       { exact ih _ (nat.le_of_lt_succ (nat.lt_of_lt_of_le contract_edge.fewer_edges hG)) },
---       { exact ih _ (nat.le_of_lt_succ (nat.lt_of_lt_of_le minus_lt_edges hG)) } } }
+    exact induction_step e (ih _ contract_edge.fewer_edges rfl) (ih _ minus_lt_edges rfl)
 
 end Menger
 

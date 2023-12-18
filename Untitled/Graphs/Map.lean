@@ -165,8 +165,8 @@ namespace contract_edge
 --   { simp only [proj_edge, prod.mk.inj_iff], exact ⟨h₃,h₄⟩ }
 -- end
 
--- lemma fewer_edges {e : G.Dart} [decidable_rel (G/e).adj] :
---   fintype.card (G/e).Dart < fintype.card G.Dart :=
+lemma fewer_edges [Fintype V] {e : G.Dart} :
+  Fintype.card (G /ₑ e).Dart < Fintype.card G.Dart := sorry
 -- calc fintype.card (G/e).Dart ≤ fintype.card (preserved (merge_edge e) G) :
 --   fintype.card_le_of_surjective _ proj_edge_surj
 --                         ...  < fintype.card (G.Dart) :
