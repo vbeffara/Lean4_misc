@@ -1,6 +1,7 @@
 import Mathlib
 import Untitled.Graphs.Contraction
 import Untitled.Graphs.Map
+import Untitled.Graphs.Walk
 
 set_option autoImplicit false
 
@@ -33,8 +34,8 @@ def Disjoint (p q : AB_Walk G A B) : Prop := List.Disjoint p.to_Walk.support q.t
 
 def pwd (P : Finset (AB_Walk G A B)) : Prop := P.toSet.Pairwise Disjoint
 
--- def minimal (p : AB_Walk G A B) : Prop :=
--- p.to_Walk.init ∩ B = ∅ ∧ p.to_Walk.tail ∩ A = ∅
+def minimal (p : AB_Walk G A B) : Prop :=
+  p.to_Walk.init' ∩ B = ∅ ∧ p.to_Walk.tail' ∩ A = ∅
 
 -- noncomputable def lift (f : V → V') (hf : adapted f G) (A B : Finset V) :
 --   AB_Walk (map f G) (A.image f) (B.image f) → AB_Walk G A B :=
@@ -147,8 +148,9 @@ instance : Nonempty (Separator G A B) := ⟨⟨A, Separates.self⟩⟩
 
 def symm : Separator G A B → Separator G B A := λ ⟨X, sep⟩ => ⟨X, sep.symm⟩
 
--- @[simp] lemma card_symm {X : separator G A B} : X.symm.card = X.card :=
--- by { cases X, simp only [symm] }
+@[simp] lemma card_symm {X : Separator G A B} : X.symm.card = X.card := by
+  cases X
+  simp [symm, card]
 
 -- def comm : separator G A B ≃ separator G B A :=
 -- { to_fun := symm,
@@ -158,26 +160,25 @@ def symm : Separator G A B → Separator G B A := λ ⟨X, sep⟩ => ⟨X, sep.s
 
 end Separator
 
-def is_cut_set_size (G : SimpleGraph V) [DecidableRel G.Adj] (A B : Finset V) (n : ℕ) : Prop :=
+def is_cut_set_size (G : SimpleGraph V) (A B : Finset V) (n : ℕ) : Prop :=
   ∃ X : Separator G A B, X.card = n
 
-noncomputable def min_cut (G : SimpleGraph V) [DecidableRel G.Adj] (A B : Finset V) : ℕ :=
+noncomputable def min_cut (G : SimpleGraph V) (A B : Finset V) : ℕ :=
   @Nat.find (is_cut_set_size G A B) _ ⟨A.card, ⟨A, Separates.self⟩, rfl⟩
 
 namespace min_cut
 
--- lemma symm : min_cut G A B = min_cut G B A :=
--- begin
---   simp_rw min_cut, congr' 1, ext n, split;
---   { rintro ⟨X,h⟩, refine ⟨X.symm,_⟩, rw [separator.card_symm], exact h }
--- end
+lemma symm : min_cut G A B = min_cut G B A := by
+  simp_rw [min_cut]
+  congr 1
+  ext n
+  constructor <;> exact λ ⟨X, h⟩ => ⟨X.symm, by simp [h]⟩
 
--- lemma spec : is_cut_set_size G A B (min_cut G A B) :=
--- by apply nat.find_spec
+lemma spec : is_cut_set_size G A B (min_cut G A B) := Nat.find_spec _
 
--- noncomputable def set (G : SimpleGraph V) [DecidableRel G.Adj] (A B : Finset V) :
---   {X : separator G A B // X.card = min_cut G A B} :=
--- subtype_of_exists (spec)
+noncomputable def set (G : SimpleGraph V) (A B : Finset V) :
+    {X : Separator G A B // X.card = min_cut G A B} :=
+  subtype_of_exists (spec)
 
 -- lemma le {X : separator G A B} : min_cut G A B ≤ X.card :=
 -- nat.find_le ⟨X, rfl⟩
@@ -196,7 +197,8 @@ end min_cut
 def isMenger (G : SimpleGraph V) [DecidableRel G.Adj] : Prop :=
   ∀ A B : Finset V, ∃ P : Finset (AB_Walk G A B), pwd P ∧ P.card = min_cut G A B
 
--- lemma path_le_cut (dis : pwd P) (sep : Separates G A B X) : P.card ≤ X.card :=
+lemma path_le_cut {P : Finset (AB_Walk G A B)} (dis : pwd P) (sep : Separates G A B X) :
+    P.card ≤ X.card := sorry
 -- begin
 --   let φ : Π γ : P, γ.val.to_Walk.range ∩ X := λ γ, by { choose z hz using sep γ, exact ⟨z,hz⟩ },
 --   let ψ : P → X := λ γ, ⟨_, mem_of_mem_inter_right (φ γ).prop⟩,
@@ -206,8 +208,8 @@ def isMenger (G : SimpleGraph V) [DecidableRel G.Adj] : Prop :=
 -- end
 
 lemma upper_bound {P : Finset (AB_Walk G A B)} (dis : pwd P) : P.card ≤ min_cut G A B := by
-  sorry
--- by { obtain ⟨⟨X,h₁⟩,h₂⟩ := min_cut.set G A B, rw ←h₂, exact path_le_cut dis h₁ }
+  obtain ⟨⟨X, h₁⟩, h₂⟩ := min_cut.set G A B
+  simpa [← h₂] using path_le_cut dis h₁
 
 lemma bot_iff_no_edge : Fintype.card G.Dart = 0 ↔ G = ⊥ where
   mp h := by
@@ -360,11 +362,10 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 --   { simp, exact P_eq },
 -- end
 
--- noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
---   (X_eq_min : X.card = min_cut G A B) (X_sep_AB : Separates G A B X)
---   (ih : ∃ (P : Finset (AB_Walk (G-e) A X)), pwd P ∧ P.card = min_cut (G-e) A X) :
---   {P : Finset (AB_Walk G A X) // pwd P ∧ P.card = X.card ∧ ∀ p : P, p.val.minimal} :=
--- begin
+noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
+  (X_eq_min : X.card = min_cut G A B) (X_sep_AB : Separates G A B X)
+  (ih : ∃ (P : Finset (AB_Walk (G -ₑ e) A X)), pwd P ∧ P.card = min_cut (G -ₑ e) A X) :
+  {P : Finset (AB_Walk G A X) // pwd P ∧ P.card = X.card ∧ ∀ p : P, p.val.minimal} := sorry
 --   choose P h₁ h₂ using ih, use image (AB_Walk.massage minus_le) P, refine ⟨_,_,_⟩,
 --   { exact massage_disjoint h₁ },
 --   { apply (massage_card h₁).trans, apply le_antisymm h₁.le_B,
@@ -374,13 +375,12 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 --   { intro p, choose p' hp'₁ hp'₂ using mem_image.mp p.prop,
 --     have := (p'.massage_aux minus_le).prop.1, simp [AB_Walk.massage] at hp'₂, rw hp'₂ at this,
 --     simp, exact this }
--- end
 
--- noncomputable def stitch (X_sep_AB : Separates G A B X)
---   (P : Finset (AB_Walk G A X)) (P_dis: pwd P) (P_eq_X: P.card = X.card)
---   (Q : Finset (AB_Walk G B X)) (Q_dis: pwd Q) (Q_eq_X: Q.card = X.card)
---   (hP : ∀ p : P, p.val.minimal) (hQ : ∀ q : Q, q.val.minimal) :
---   {R : Finset (AB_Walk G A B) // pwd R ∧ R.card = X.card} :=
+noncomputable def stitch (X_sep_AB : Separates G A B X)
+  (P : Finset (AB_Walk G A X)) (P_dis: pwd P) (P_eq_X: P.card = X.card)
+  (Q : Finset (AB_Walk G B X)) (Q_dis: pwd Q) (Q_eq_X: Q.card = X.card)
+  (hP : ∀ p : P, p.val.minimal) (hQ : ∀ q : Q, q.val.minimal) :
+  {R : Finset (AB_Walk G A B) // pwd R ∧ R.card = X.card} := sorry
 -- begin
 --   let φ : X ≃ P := (endpoint P P_dis P_eq_X).symm,
 --   let ψ : X ≃ Q := (endpoint Q Q_dis Q_eq_X).symm,
@@ -461,11 +461,11 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 --   { use x, simp, split, exact hx₁, left, rw hx₂, exact hz.2 }
 -- end
 
--- lemma step_1 (h_contract : isMenger (G/e))
---   (too_small : ∀ P : Finset (AB_Walk G A B), pwd P → P.card < min_cut G A B) :
---   ∃ X : Finset V, e.fst ∈ X ∧ e.snd ∈ X ∧ Separates G A B X ∧ X.card = min_cut G A B :=
--- begin
---   let A₁ := image (merge_edge e) A, let B₁ := image (merge_edge e) B,
+lemma step_1 {e} (h_contract : isMenger (G /ₑ e))
+    (too_small : ∀ P : Finset (AB_Walk G A B), pwd P → P.card < min_cut G A B) :
+    ∃ X : Finset V, e.fst ∈ X ∧ e.snd ∈ X ∧ Separates G A B X ∧ X.card = min_cut G A B := by
+  let A₁ := image (merge_edge e) A
+  let B₁ := image (merge_edge e) B
 --   obtain ⟨Y, Y_eq_min₁⟩ := min_cut.set (G/e) A₁ B₁, let X := Y.to_Finset ∪ {e.snd},
 
 --   have Y_lt_min : Y.card < min_cut G A B :=
@@ -490,7 +490,7 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 --   { rw [mem_union,mem_singleton], right, refl },
 --   { refine le_antisymm _ (min_cut.le' X_sep_AB),
 --     exact (card_union_le _ _).trans (nat.succ_le_of_lt Y_lt_min) }
--- end
+  sorry
 
 lemma induction_step (e : G.Dart) : isMenger (G /ₑ e) → isMenger (G -ₑ e) → isMenger G := by
   intro h_contract h_minus A B
@@ -499,15 +499,13 @@ lemma induction_step (e : G.Dart) : isMenger (G /ₑ e) → isMenger (G -ₑ e) 
   push_neg at too_small
   replace too_small : ∀ P : Finset (AB_Walk G A B), pwd P → P.card < min_cut G A B
   · exact λ P h => lt_of_le_of_ne (upper_bound h) (too_small P h)
-  sorry
---   choose X ex_in_X ey_in_X X_sep_AB X_eq_min using step_1 h_contract too_small,
-
---   rcases sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (h_minus A X) with ⟨P,hP⟩,
---   let X_eq_min' : X.card = min_cut G B A := X_eq_min.trans min_cut.symm,
---   rcases sep_cleanup ex_in_X ey_in_X X_eq_min' X_sep_AB.symm (h_minus B X) with ⟨Q,hQ⟩,
---   rw ←X_eq_min, apply subtype.exists_of_subtype,
-
---   exact stitch X_sep_AB P hP.1 hP.2.1 Q hQ.1 hQ.2.1 hP.2.2 hQ.2.2
+  obtain ⟨X, ex_in_X, ey_in_X, X_sep_AB, X_eq_min⟩ := step_1 h_contract too_small
+  obtain ⟨P, hP⟩ := sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (h_minus A X)
+  have X_eq_min' : X.card = min_cut G B A := X_eq_min.trans min_cut.symm
+  obtain ⟨Q, hQ⟩ := sep_cleanup ex_in_X ey_in_X X_eq_min' X_sep_AB.symm (h_minus B X)
+  rw [← X_eq_min]
+  apply Subtype.exists_of_subtype
+  exact stitch X_sep_AB P hP.1 hP.2.1 Q hQ.1 hQ.2.1 hP.2.2 hQ.2.2
 
 theorem bla {α : Type*} (f : α → ℕ) {motive : α → Prop}
     (h1 : ∀ a, (∀ b, f b < f a → motive b) → motive a) {a} : motive a :=
