@@ -10,11 +10,10 @@ open Classical Function Finset
 -- import graph_theory.contraction graph_theory.pushforward graph_theory.basic graph_theory.walk
 -- open Finset classical function SimpleGraph.Walk
 
-variable {V V' : Type*} [Fintype V] [DecidableEq V] [Fintype V'] [DecidableEq V']
+variable {V V' : Type*} [Fintype V] [Fintype V']
 variable {G G₁ G₂ : SimpleGraph V}
-variable [DecidableRel G.Adj] [DecidableRel G₁.Adj] [DecidableRel G₂.Adj]
-variable {a : V} {A B X Y Z : Finset V} {e : G.Dart}
-variable {f : V → V'} {hf : G.Adapted f}
+variable {a : V} {A B X Y Z : Finset V} -- {e : G.Dart}
+-- variable {f : V → V'} {hf : G.Adapted f}
 
 namespace SimpleGraph
 
@@ -28,9 +27,11 @@ structure AB_Walk (G : SimpleGraph V) (A B : Finset V) :=
 
 namespace AB_Walk
 
+def Reverse (p : AB_Walk G A B) : AB_Walk G B A := ⟨p.b, p.a, p.hb, p.ha, p.to_Walk.reverse⟩
+
 def Disjoint (p q : AB_Walk G A B) : Prop := List.Disjoint p.to_Walk.support q.to_Walk.support
 
-def pwd (P : Set (AB_Walk G A B)) : Prop := P.Pairwise Disjoint
+def pwd (P : Finset (AB_Walk G A B)) : Prop := P.toSet.Pairwise Disjoint
 
 -- def minimal (p : AB_Walk G A B) : Prop :=
 -- p.to_Walk.init ∩ B = ∅ ∧ p.to_Walk.tail ∩ A = ∅
@@ -119,11 +120,10 @@ namespace Separates
 
 lemma self : Separates G A B A := λ γ => ⟨γ.a, γ.ha, γ.to_Walk.start_mem_support⟩
 
--- lemma symm : Separates G A B X → Separates G B A X :=
--- begin
---   rintro h ⟨p,pa,pb⟩, let q : AB_Walk G A B := by { use p.reverse; simpa only },
---   specialize h q, simp only [reverse_range] at h, exact h
--- end
+lemma symm (h : Separates G A B X) : Separates G B A X := by
+  intro p
+  obtain ⟨x, h1, h2⟩ := h p.Reverse
+  exact ⟨x, h1, by simpa [Reverse] using h2⟩
 
 -- lemma comm : Separates G A B X ↔ Separates G B A X :=
 -- ⟨Separates.symm,Separates.symm⟩
@@ -143,11 +143,9 @@ namespace Separator
 
 def card (X : Separator G A B) : ℕ := X.val.card
 
--- instance nonempty : nonempty (separator G A B) :=
--- ⟨⟨A,Separates.self⟩⟩
+instance : Nonempty (Separator G A B) := ⟨⟨A, Separates.self⟩⟩
 
--- def symm : separator G A B → separator G B A :=
--- λ ⟨X, sep⟩, ⟨X, sep.symm⟩
+def symm : Separator G A B → Separator G B A := λ ⟨X, sep⟩ => ⟨X, sep.symm⟩
 
 -- @[simp] lemma card_symm {X : separator G A B} : X.symm.card = X.card :=
 -- by { cases X, simp only [symm] }
@@ -163,7 +161,6 @@ end Separator
 def is_cut_set_size (G : SimpleGraph V) [DecidableRel G.Adj] (A B : Finset V) (n : ℕ) : Prop :=
   ∃ X : Separator G A B, X.card = n
 
-open Classical in
 noncomputable def min_cut (G : SimpleGraph V) [DecidableRel G.Adj] (A B : Finset V) : ℕ :=
   @Nat.find (is_cut_set_size G A B) _ ⟨A.card, ⟨A, Separates.self⟩, rfl⟩
 
@@ -197,7 +194,7 @@ lemma inter_le_min_cut : (A ∩ B).card ≤ min_cut G A B := by
 end min_cut
 
 def isMenger (G : SimpleGraph V) [DecidableRel G.Adj] : Prop :=
-  ∀ A B : Finset V, ∃ P : Finset (AB_Walk G A B), P.toSet.Pairwise Disjoint ∧ P.card = min_cut G A B
+  ∀ A B : Finset V, ∃ P : Finset (AB_Walk G A B), pwd P ∧ P.card = min_cut G A B
 
 -- lemma path_le_cut (dis : pwd P) (sep : Separates G A B X) : P.card ≤ X.card :=
 -- begin
@@ -208,7 +205,8 @@ def isMenger (G : SimpleGraph V) [DecidableRel G.Adj] : Prop :=
 --   simp_rw [←Fintype.card_coe], convert Fintype.card_le_of_injective ψ h₂
 -- end
 
--- lemma upper_bound (dis : pwd P) : P.card ≤ min_cut G A B :=
+lemma upper_bound {P : Finset (AB_Walk G A B)} (dis : pwd P) : P.card ≤ min_cut G A B := by
+  sorry
 -- by { obtain ⟨⟨X,h₁⟩,h₂⟩ := min_cut.set G A B, rw ←h₂, exact path_le_cut dis h₁ }
 
 lemma bot_iff_no_edge : Fintype.card G.Dart = 0 ↔ G = ⊥ where
@@ -495,14 +493,13 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 -- end
 
 lemma induction_step (e : G.Dart) : isMenger (G /ₑ e) → isMenger (G -ₑ e) → isMenger G := by
+  intro h_contract h_minus A B
+  apply not_imp_self.mp
+  intro too_small
+  push_neg at too_small
+  replace too_small : ∀ P : Finset (AB_Walk G A B), pwd P → P.card < min_cut G A B
+  · exact λ P h => lt_of_le_of_ne (upper_bound h) (too_small P h)
   sorry
--- begin
---   intros h_contract h_minus A B,
-
---   apply not_imp_self.mp, intro too_small, push_neg at too_small, replace too_small :
---     ∀ P : Finset (AB_Walk G A B), pwd P → P.card < min_cut G A B :=
---   by { intros P h, exact lt_of_le_of_ne (upper_bound h) (too_small P h) },
-
 --   choose X ex_in_X ey_in_X X_sep_AB X_eq_min using step_1 h_contract too_small,
 
 --   rcases sep_cleanup ex_in_X ey_in_X X_eq_min X_sep_AB (h_minus A X) with ⟨P,hP⟩,
@@ -511,17 +508,28 @@ lemma induction_step (e : G.Dart) : isMenger (G /ₑ e) → isMenger (G -ₑ e) 
 --   rw ←X_eq_min, apply subtype.exists_of_subtype,
 
 --   exact stitch X_sep_AB P hP.1 hP.2.1 Q hQ.1 hQ.2.1 hP.2.2 hQ.2.2
--- end
+
+theorem bla {α : Type*} (f : α → ℕ) {motive : α → Prop}
+    (h1 : ∀ a, (∀ b, f b < f a → motive b) → motive a) {a} : motive a :=
+  Nat.strongInductionOn (motive := fun x ↦ ∀ {a}, f a = x → motive a) (f a)
+    (fun _ ih {a} h ↦ h1 a fun b hb ↦ ih (f b) (h ▸ hb) rfl) (Eq.refl (f a))
+
+theorem graph_induction {motive : SimpleGraph V → Prop}
+    (h1 : ∀ G, (∀ G', Fintype.card (Dart G') < Fintype.card (Dart G) → motive G') → motive G) :
+    motive G :=
+  bla (f := λ G => Fintype.card (Dart G)) h1
 
 theorem Menger : isMenger G := by
   induction' h : Fintype.card G.Dart using Nat.strongInductionOn with n ih generalizing G
-  by_cases h : Fintype.card G.Dart = 0
-  · simp [bot_iff_no_edge.mp h]
+  subst h
+  by_cases h' : Fintype.card G.Dart = 0
+  · simp [bot_iff_no_edge.mp h']
   · have h2 : ¬ IsEmpty G.Dart := by simpa [← Fintype.card_eq_zero_iff]
     obtain ⟨e⟩ := not_isEmpty_iff.mp h2
     apply induction_step e
-    · sorry
-    · sorry
+    · refine ih _ ?_ rfl
+      sorry
+    · exact ih _ minus_lt_edges rfl
 --   { resetI, by_cases (Fintype.card G.Dart = 0),
 --     { apply ih, rw h, linarith },
 --     { cases not_is_empty_iff.mp (h ∘ Fintype.card_eq_zero_iff.mpr) with e, apply induction_step e,
