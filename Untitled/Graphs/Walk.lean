@@ -1,10 +1,11 @@
 import Mathlib
+import Untitled.Graphs.Contraction
 
 set_option autoImplicit false
 
-open Classical
+open Classical SimpleGraph
 
-variable {V : Type*} {a b : V} {G : SimpleGraph V}
+variable {V V' : Type*} {a b : V} {G : SimpleGraph V}
 
 namespace SimpleGraph
 
@@ -45,7 +46,7 @@ end SimpleGraph
 -- def cons (e : G.dart) (p : G.Walk) (h : e.snd = p.a) : G.Walk :=
 -- by { let h' := e.is_adj, rw h at h', exact ⟨p.p.cons h'⟩ }
 
--- def step (e : G.dart) : G.Walk := cons e (nil e.snd) rfl
+def step (e : G.Dart) : G.Walk e.fst e.snd := Walk.cons e.is_adj Walk.nil
 
 -- def rec₀ {motive : G.Walk → Sort*} :
 --   (Π u, motive (Walk.nil u)) →
@@ -163,22 +164,17 @@ end SimpleGraph
 --   rw [append, append_aux], simp only [walk.mem_support_append_iff]
 -- end
 
--- def push_step_aux (f : V → V') (e : G.dart) :
---   {w : (map f G).Walk // w.a = f e.fst ∧ w.b = f e.snd} :=
--- begin
---   by_cases f e.fst = f e.snd,
---   exact ⟨Walk.nil (f e.fst), rfl, h⟩,
---   exact ⟨Walk.step ⟨⟨_,_⟩,⟨h,e.fst,e.snd,e.is_adj,rfl,rfl⟩⟩, rfl, rfl⟩
--- end
+noncomputable def push_step (f : V → V') (e : G.Dart) : (G.map' f).Walk (f e.fst) (f e.snd) := by
+  by_cases h : f e.fst = f e.snd
+  · rw [h]
+  · refine @step V' (G.map' f) ⟨(f e.fst, f e.snd), ?_⟩
+    simpa [map', h] using ⟨e.fst, e.snd, e.is_adj, rfl, rfl⟩
 
--- def push_step (f : V → V') (e : G.dart) : (map f G).Walk :=
--- (push_step_aux f e).val
-
--- @[simp] lemma push_step_a : (push_step f e).a = f e.fst :=
--- (push_step_aux f e).prop.1
-
--- @[simp] lemma push_step_b : (push_step f e).b = f e.snd :=
--- (push_step_aux f e).prop.2
+example {a b} (f : V → V') : G.Walk a b → (G.map' f).Walk (f a) (f b)
+| Walk.nil => Walk.nil
+| Walk.cons e p => by
+    -- let ee := push_step f e
+    sorry
 
 -- def push_Walk_aux (f : V → V') (p : G.Walk) :
 --   {w : (map f G).Walk // w.a = f p.a ∧ w.b = f p.b} :=
@@ -265,9 +261,8 @@ end SimpleGraph
 
 -- variables {hf : adapted f G} {p' : (map f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
 
--- noncomputable def pull_Walk_aux (f : V → V') (hf : adapted f G) (p' : (map f G).Walk) (x y : V)
---   (hx : f x = p'.a) (hy : f y = p'.b) :
---   {w : G.Walk // w.a = x ∧ w.b = y ∧ push_Walk f w = p'} :=
+noncomputable def pull_Walk_aux (f : V → V') (hf : G.Adapted f) (x y : V)
+  (p' : (G.map' f).Walk (f x) (f y)) : {w : G.Walk x y // push_Walk f w = p'} := sorry
 -- begin
 --   revert p' x y, refine rec₀ _ _,
 --   { rintros u x y hx hy, simp at hx hy, subst hy, choose p h₃ using hf hx,

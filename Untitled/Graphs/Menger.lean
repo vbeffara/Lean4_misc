@@ -7,10 +7,6 @@ set_option autoImplicit false
 
 open Classical Function Finset
 
--- import combinatorics.SimpleGraph.connectivity data.Finset data.setoid.basic
--- import graph_theory.contraction graph_theory.pushforward graph_theory.basic graph_theory.walk
--- open Finset classical function SimpleGraph.Walk
-
 variable {V V' : Type*} [Fintype V] [Fintype V']
 variable {G G₁ G₂ : SimpleGraph V}
 variable {a : V} {A B X Y Z : Finset V} -- {e : G.Dart}
@@ -37,28 +33,25 @@ def pwd (P : Finset (AB_Walk G A B)) : Prop := P.toSet.Pairwise Disjoint
 def minimal (p : AB_Walk G A B) : Prop :=
   p.to_Walk.init' ∩ B = ∅ ∧ p.to_Walk.tail' ∩ A = ∅
 
--- noncomputable def lift (f : V → V') (hf : adapted f G) (A B : Finset V) :
---   AB_Walk (map f G) (A.image f) (B.image f) → AB_Walk G A B :=
--- begin
---   rintro ⟨p,ha,hb⟩,
---   choose a h₂ h₃ using mem_image.mp ha,
---   choose b h₅ h₆ using mem_image.mp hb,
---   let γ := Walk.pull_Walk_aux f hf p a b h₃ h₆,
+noncomputable def lift (f : V → V') (hf : G.Adapted f) (A B : Finset V) :
+    AB_Walk (G.map' f) (A.image f) (B.image f) → AB_Walk G A B := by
+  rintro ⟨a, b, ha, hb, p⟩
+  choose a h₂ h₃ using mem_image.mp ha
+  choose b h₅ h₆ using mem_image.mp hb
+  -- let γ := Walk.pull_Walk_aux f hf p a b h₃ h₆,
 --   rw ←γ.2.1 at h₂, rw ←γ.2.2.1 at h₅, exact ⟨γ,h₂,h₅⟩
--- end
+  sorry
 
--- def push (f : V → V') (A B : Finset V) :
---   AB_Walk G A B → AB_Walk (map f G) (A.image f) (B.image f) :=
--- begin
+def push (f : V → V') (A B : Finset V) :
+  AB_Walk G A B → AB_Walk (G.map' f) (A.image f) (B.image f) := sorry
 --   intro p, refine ⟨Walk.push_Walk f p.to_Walk, _, _⟩,
 --   rw Walk.push_Walk_a, exact mem_image_of_mem f p.ha,
 --   rw Walk.push_Walk_b, exact mem_image_of_mem f p.hb,
--- end
 
 -- lemma push_lift : left_inverse (push f A B) (lift f hf A B) :=
 -- by { rintro ⟨p,ha,hb⟩, simp [lift,push], exact Walk.pull_Walk_push }
 
--- lemma lift_inj : injective (lift f hf A B) :=
+lemma lift_inj {f : V → V'} {hf : G.Adapted f} : Injective (lift f hf A B) := sorry
 -- left_inverse.injective push_lift
 
 -- noncomputable def trim_aux (p : AB_Walk G A B) :
@@ -469,10 +462,11 @@ lemma step_1 {e} (h_contract : isMenger (G /ₑ e))
   obtain ⟨Y, Y_eq_min₁⟩ := min_cut.set (G /ₑ e) A₁ B₁
   let X := Y.val ∪ {e.snd}
 
-  have Y_lt_min : Y.card < min_cut G A B := sorry
---     choose P₁ P₁_dis P₁_eq_min₁ using h_contract A₁ B₁,
---     rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_Walk.lift_inj],
---     apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted }
+  have Y_lt_min : Y.card < min_cut G A B := by
+    obtain ⟨P₁, P₁_dis, P₁_eq_min₁⟩ := h_contract A₁ B₁
+    -- rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_Walk.lift_inj]
+    -- apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted }
+    sorry
 
   have X_sep_AB : Separates G A B X := sep_of_sep_in_merge Y.prop
   refine ⟨X, ?_, ?_, X_sep_AB, ?_⟩
@@ -480,9 +474,11 @@ lemma step_1 {e} (h_contract : isMenger (G /ₑ e))
     left
     by_contra
     suffices Separates G A B Y.val from not_lt_of_le (min_cut.le' this) Y_lt_min
---     intro p, choose z hz using Y.sep (p.push (merge_edge e) A B), use z,
---     rw mem_inter at hz ⊢, rcases hz with ⟨hz₁,hz₂⟩, refine ⟨_,hz₂⟩,
---     rw [AB_Walk.push,Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
+    intro p
+    obtain ⟨z, hz⟩ := Y.prop (p.push (merge_edge e) A B)
+    refine ⟨z, hz.1, ?_⟩
+    rw [AB_Walk.push] at hz
+--     rw [Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
 --     by_cases x = e.snd; simp [merge_edge,h] at hx₂,
 --     { rw [←hx₂] at hz₂, contradiction },
 --     { rwa [←hx₂] } },
