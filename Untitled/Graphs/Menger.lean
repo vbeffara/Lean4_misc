@@ -42,11 +42,9 @@ noncomputable def lift (f : V → V') (hf : G.Adapted f) (A B : Finset V) :
 --   rw ←γ.2.1 at h₂, rw ←γ.2.2.1 at h₅, exact ⟨γ,h₂,h₅⟩
   sorry
 
-def push (f : V → V') (A B : Finset V) :
-  AB_Walk G A B → AB_Walk (G.map' f) (A.image f) (B.image f) := sorry
---   intro p, refine ⟨Walk.push_Walk f p.to_Walk, _, _⟩,
---   rw Walk.push_Walk_a, exact mem_image_of_mem f p.ha,
---   rw Walk.push_Walk_b, exact mem_image_of_mem f p.hb,
+noncomputable def push (f : V → V') (p : AB_Walk G A B) :
+    AB_Walk (G.map' f) (A.image f) (B.image f) := by
+  refine ⟨_, _, mem_image_of_mem f p.ha, mem_image_of_mem f p.hb, push_Walk f p.to_Walk⟩
 
 -- lemma push_lift : left_inverse (push f A B) (lift f hf A B) :=
 -- by { rintro ⟨p,ha,hb⟩, simp [lift,push], exact Walk.pull_Walk_push }
@@ -475,9 +473,9 @@ lemma step_1 {e} (h_contract : isMenger (G /ₑ e))
     by_contra
     suffices Separates G A B Y.val from not_lt_of_le (min_cut.le' this) Y_lt_min
     intro p
-    obtain ⟨z, hz⟩ := Y.prop (p.push (merge_edge e) A B)
+    obtain ⟨z, hz⟩ := Y.prop (p.push <| merge_edge e)
     refine ⟨z, hz.1, ?_⟩
-    rw [AB_Walk.push] at hz
+    simp [AB_Walk.push] at hz
 --     rw [Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
 --     by_cases x = e.snd; simp [merge_edge,h] at hx₂,
 --     { rw [←hx₂] at hz₂, contradiction },

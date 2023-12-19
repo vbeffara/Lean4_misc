@@ -67,8 +67,7 @@ def step (e : G.Dart) : G.Walk e.fst e.snd := Walk.cons e.is_adj Walk.nil
 -- @[simp] lemma cons_a : (cons e p hep).a = e.fst := rfl
 -- @[simp] lemma cons_b : (cons e p hep).b = p.b := rfl
 
--- def range (p : G.Walk) : finset V :=
--- p.p.support.to_finset
+noncomputable def Walk.range (p : G.Walk a b) : Finset V := p.support.toFinset
 
 -- @[simp] lemma range_cons : (cons e p hep).range = {e.fst} ∪ p.range :=
 -- by simpa only [range, cons, walk.support_cons, list.to_finset_cons]
@@ -170,32 +169,9 @@ noncomputable def push_step (f : V → V') (e : G.Dart) : (G.map' f).Walk (f e.f
   · refine @step V' (G.map' f) ⟨(f e.fst, f e.snd), ?_⟩
     simpa [map', h] using ⟨e.fst, e.snd, e.is_adj, rfl, rfl⟩
 
-example {a b} (f : V → V') : G.Walk a b → (G.map' f).Walk (f a) (f b)
+noncomputable def push_Walk {a b} (f : V → V') : G.Walk a b → (G.map' f).Walk (f a) (f b)
 | Walk.nil => Walk.nil
-| Walk.cons e p => by
-    -- let ee := push_step f e
-    sorry
-
--- def push_Walk_aux (f : V → V') (p : G.Walk) :
---   {w : (map f G).Walk // w.a = f p.a ∧ w.b = f p.b} :=
--- begin
---   refine rec₀ _ _ p,
---   { intro u, exact ⟨Walk.nil (f u), rfl, rfl⟩ },
---   { intros e p h q, simp only [cons_a, cons_b],
---     let ee := push_step f e,
---     let ww := ee.append q.1 (by { rw [q.2.1,←h], exact push_step_b }),
---     refine ⟨ww, _, _⟩, simp,
---     rw [←q.2.2], exact (ee.append_aux q.1 (by { rw [q.2.1,←h], exact push_step_b })).2.2 }
--- end
-
--- def push_Walk (f : V → V') (p : G.Walk) : (map f G).Walk :=
--- (push_Walk_aux f p).val
-
--- @[simp] lemma push_Walk_a : (push_Walk f p).a = f p.a :=
---  (push_Walk_aux f p).prop.1
-
--- @[simp] lemma push_Walk_b : (push_Walk f p).b = f p.b :=
---  (push_Walk_aux f p).prop.2
+| Walk.cons e p => push_step f ⟨(_,_), e⟩ |>.append (push_Walk f p)
 
 -- @[simp] lemma push_nil : push_Walk f (@Walk.nil _ _ G a) = Walk.nil (f a) := rfl
 
@@ -247,7 +223,8 @@ example {a b} (f : V → V') : G.Walk a b → (G.map' f).Walk (f a) (f b)
 -- @[simp] lemma push_step_range : (push_step f e).range = {f e.fst, f e.snd} :=
 -- by { by_cases f e.fst = f e.snd; simp [push_step, push_step_aux, h] }
 
--- lemma push_range : (push_Walk f p).range = finset.image f p.range :=
+@[simp] lemma push_range {a b} {f : V → V'} {p : G.Walk a b} :
+    Walk.range (push_Walk f p) = (Finset.image f <| Walk.range p) := sorry
 -- begin
 --   refine rec₀ _ _ p, simp, rintro e p h q,
 --   rw [push_cons,range_cons,range_append,q,finset.image_union,push_step_range],
