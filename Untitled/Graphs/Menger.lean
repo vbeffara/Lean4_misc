@@ -368,12 +368,11 @@ noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.
 --     simp, exact this }
 
 noncomputable def stitch (X_sep_AB : Separates G A B X)
-  (P : Finset (AB_Walk G A X)) (P_dis: pwd P) (P_eq_X: P.card = X.card)
-  (Q : Finset (AB_Walk G B X)) (Q_dis: pwd Q) (Q_eq_X: Q.card = X.card)
-  (hP : ∀ p : P, p.val.minimal) (hQ : ∀ q : Q, q.val.minimal) :
-  {R : Finset (AB_Walk G A B) // pwd R ∧ R.card = X.card} := sorry
--- begin
---   let φ : X ≃ P := (endpoint P P_dis P_eq_X).symm,
+    (P : Finset (AB_Walk G A X)) (P_dis: pwd P) (P_eq_X: P.card = X.card)
+    (Q : Finset (AB_Walk G B X)) (Q_dis: pwd Q) (Q_eq_X: Q.card = X.card)
+    (hP : ∀ p : P, p.val.minimal) (hQ : ∀ q : Q, q.val.minimal) :
+    {R : Finset (AB_Walk G A B) // pwd R ∧ R.card = X.card} := by
+  -- let φ : X ≃ P := (endpoint P P_dis P_eq_X).symm,
 --   let ψ : X ≃ Q := (endpoint Q Q_dis Q_eq_X).symm,
 
 --   have φxb : ∀ x : X, (φ x).val.b = x.val :=
@@ -438,20 +437,17 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
 --   },
 
 --   refine ⟨R, R_dis, _⟩, rw card_image_of_injective _ Ψ_inj, convert Fintype.card_coe X
--- end
+  sorry
 
 lemma sep_of_sep_in_merge {e}
     (Y_sep : Separates (G /ₑ e) (image (merge_edge e) A) (image (merge_edge e) B) Y) :
-    Separates G A B (Y ∪ {e.snd}) := sorry
--- begin
---   rintro Y_sep γ,
---   choose z hz using Y_sep (γ.push (merge_edge e) A B),
---   rw [mem_inter,AB_Walk.push,Walk.push_range,mem_image] at hz,
---   choose x hx₁ hx₂ using hz.1,
---   by_cases x = e.snd; simp [merge_edge,h] at hx₂,
---   { use x, simp, split, exact hx₁, right, exact h },
---   { use x, simp, split, exact hx₁, left, rw hx₂, exact hz.2 }
--- end
+    Separates G A B (Y ∪ {e.snd}) := by
+  rintro γ
+  obtain ⟨z, hz⟩ := Y_sep (γ.push (merge_edge e))
+  simp [mem_inter, push] at hz
+  obtain ⟨x, hx₁, hx₂⟩ := hz.1
+  use x
+  by_cases h : x = e.snd <;> simp [merge_edge, update, h] at hx₂ <;> subst_vars <;> simp [hx₁, hz]
 
 lemma step_1 {e} (h_contract : isMenger (G /ₑ e))
     (too_small : ∀ P : Finset (AB_Walk G A B), pwd P → P.card < min_cut G A B) :
