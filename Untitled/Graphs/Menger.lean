@@ -416,13 +416,11 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     have z_is_x : z = x := by
       apply mem_singleton.mp
       convert ← mem_inter.mpr ⟨hz.1,z_in_X⟩
-      -- rw [range_eq_init_union_last, inter_distrib_right, φxb, (hP (φ x)).1],
---       simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union], },
-      sorry
-    have z_is_y : z = y := by sorry
---       apply mem_singleton.mp, convert ← mem_inter.mpr ⟨hz.2,z_in_X⟩,
---       rw [range_eq_init_union_last, inter_distrib_right, ψxb, (hQ (ψ y)).1],
---       simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union] },
+      simp [range_eq_init_union_last, inter_distrib_right, φxb x, (hP (φ x)).1]
+    have z_is_y : z = y := by
+      apply mem_singleton.mp
+      convert ← mem_inter.mpr ⟨hz.2,z_in_X⟩
+      simp [range_eq_init_union_last, inter_distrib_right, ψxb y, (hQ (ψ y)).1]
     ext
     exact z_is_x.symm.trans z_is_y
   have R_dis : pwd R := sorry

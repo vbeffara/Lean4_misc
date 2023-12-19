@@ -5,13 +5,18 @@ set_option autoImplicit false
 
 open Classical SimpleGraph
 
-variable {V V' : Type*} {a b : V} {G : SimpleGraph V}
+variable {V V' : Type*} {a b c : V} {G : SimpleGraph V}
 
 namespace SimpleGraph
 
 namespace Walk
 
 noncomputable def range (p : G.Walk a b) : Finset V := p.support.toFinset
+
+@[simp] lemma range_cons {h : G.Adj a b} {p : G.Walk b c} : (cons h p).range = {a} ∪ p.range := by
+  simp [range] ; rfl
+
+@[simp] lemma range_reverse {p : G.Walk a b} : p.reverse.range = p.range := by simp [range]
 
 noncomputable def init' {a b} : G.Walk a b → Finset V
 | nil => {}
@@ -20,8 +25,6 @@ noncomputable def init' {a b} : G.Walk a b → Finset V
 noncomputable def tail' {a b} : G.Walk a b → Finset V
 | nil => {}
 | cons _ p => p.range
-
-@[simp] lemma range_reverse {p : G.Walk a b} : p.reverse.range = p.range := by simp [range]
 
 end Walk
 
@@ -89,7 +92,11 @@ def step (e : G.Dart) : G.Walk e.fst e.snd := Walk.cons e.is_adj Walk.nil
 
 -- @[simp] lemma init_cons : (cons e p hep).init = {e.fst} ∪ p.init := rec_cons
 
--- lemma range_eq_init_union_last : p.range = p.init ∪ {p.b} :=
+lemma range_eq_init_union_last {p : G.Walk a b} : p.range = p.init' ∪ {b} := by
+  induction p with
+  | nil => simp [Walk.range, Walk.init']
+  | cons h p ih => simp [Walk.init', ih] ; rfl
+
 -- by { refine rec₀ _ _ p, { intro u, refl }, { rintro e p h q, simp [q] } }
 
 -- def tail : G.Walk → finset V :=
