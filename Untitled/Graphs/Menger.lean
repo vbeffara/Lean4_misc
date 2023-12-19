@@ -320,8 +320,8 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 --   apply massage_eq hP, rw he, simp
 -- end
 
--- lemma meet_sub_X (X_sep_AB : Separates G A B X) (p : AB_Walk G A X) (q : AB_Walk G B X)
---   (hp : p.minimal) (hq : q.minimal) : p.to_Walk.range ∩ q.to_Walk.range ⊆ X :=
+lemma meet_sub_X (X_sep_AB : Separates G A B X) (p : AB_Walk G A X) (q : AB_Walk G B X)
+  (hp : p.minimal) (hq : q.minimal) : p.to_Walk.range ∩ q.to_Walk.range ⊆ X := sorry
 -- begin
 --   rcases p with ⟨p,pa,pb⟩, rcases q with ⟨q,qa,qb⟩, dsimp,
 --   rintro x hx, rw mem_inter at hx, cases hx with hx₁ hx₂, by_contra,
@@ -344,14 +344,19 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 --   rw mem_union at hz, cases hz; { have := ne_empty_of_mem hz, contradiction }
 -- end
 
--- noncomputable def endpoint (P : Finset (AB_Walk G A B))
---   (P_dis : pwd P) (P_eq : P.card = B.card) : P ≃ B :=
--- begin
---   let φ : P → B := λ p, let q := p.val in ⟨q.b,q.hb⟩,
---   apply equiv.of_bijective φ, rw Fintype.bijective_iff_injective_and_card, split,
---   { rintro p₁ p₂ h, apply P_dis, use p₁.val.b, simp at h ⊢, simp [h]  },
---   { simp, exact P_eq },
--- end
+noncomputable def endpoint (P : Finset (AB_Walk G A B)) (P_dis : pwd P) (P_eq : P.card = B.card) :
+    P ≃ B := by
+  let φ (p : P) : B := ⟨_, p.val.hb⟩
+  apply Equiv.ofBijective φ
+  refine (Fintype.bijective_iff_injective_and_card φ).2 ⟨?_, by simp [P_eq]⟩
+  intro p₁ p₂ h
+  ext
+  have := P_dis p₁.prop p₂.prop
+  contrapose! this
+  simp at h
+  simp [this, AB_Walk.Disjoint, _root_.Disjoint]
+  use {p₁.val.b}
+  simp [Walk.range] ; simp [h]
 
 noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
   (X_eq_min : X.card = min_cut G A B) (X_sep_AB : Separates G A B X)
@@ -372,32 +377,31 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     (Q : Finset (AB_Walk G B X)) (Q_dis: pwd Q) (Q_eq_X: Q.card = X.card)
     (hP : ∀ p : P, p.val.minimal) (hQ : ∀ q : Q, q.val.minimal) :
     {R : Finset (AB_Walk G A B) // pwd R ∧ R.card = X.card} := by
-  -- let φ : X ≃ P := (endpoint P P_dis P_eq_X).symm,
---   let ψ : X ≃ Q := (endpoint Q Q_dis Q_eq_X).symm,
-
---   have φxb : ∀ x : X, (φ x).val.b = x.val :=
---   by { intro x, set γ := φ x,
---     have : x = φ.symm γ := by simp only [equiv.symm_symm, equiv.apply_symm_apply],
---     rw this, refl },
-
---   have ψxb : ∀ x : X, (ψ x).val.b = x.val :=
---   by { intro x, set γ := ψ x,
---     have : x = ψ.symm γ := by simp only [equiv.symm_symm, equiv.apply_symm_apply],
---     rw this, refl },
-
---   let Ψ : X → AB_Walk G A B :=
---   by { intro x, set γ := φ x with hγ, set δ := ψ x with hδ,
---     have γbx : γ.val.b = x := φxb x, have δbx : δ.val.b = x := ψxb x,
---     set ζ := δ.val.to_Walk.reverse, refine ⟨Walk.append γ.val.to_Walk ζ _, _, _⟩,
---     { rw [γbx,←δbx,reverse_a] },
---     { rw [append_a], exact γ.val.ha },
---     { rw [append_b,reverse_b], exact δ.val.ha } },
-
---   set R := image Ψ univ,
-
---   have Ψ_inj : injective Ψ :=
---   by {
---     have : ∀ x : X, (Ψ x).to_Walk.range ∩ X = {x} :=
+  let φ : X ≃ P := (endpoint P P_dis P_eq_X).symm
+  let ψ : X ≃ Q := (endpoint Q Q_dis Q_eq_X).symm
+  have φxb (x : X) : (φ x).val.b = x.val := by
+    set γ := φ x with hγ
+    have : x = φ.symm γ := by simp only [Equiv.symm_symm, Equiv.apply_symm_apply]
+    rw [this]
+    rfl
+  have ψxb (x : X) : (ψ x).val.b = x.val := by
+    set γ := ψ x with hγ
+    have : x = ψ.symm γ := by simp only [Equiv.symm_symm, Equiv.apply_symm_apply]
+    rw [this]
+    rfl
+  let Ψ (x : X) : AB_Walk G A B := by
+    set γ := φ x with hγ
+    set δ := ψ x with hδ
+    have γbx : γ.val.b = x := φxb x
+    have δbx : δ.val.b = x := ψxb x
+    set ζ := δ.val.to_Walk.reverse
+    refine ⟨γ.val.a, δ.val.a, γ.val.ha, δ.val.ha, ?_⟩
+    refine Walk.append γ.val.to_Walk ?_
+    rw [γbx, ← δbx]
+    exact ζ
+  set R := image Ψ univ
+  have Ψ_inj : Injective Ψ := by
+    have (x : X) : (Ψ x).to_Walk.range ∩ X = {x.val} := sorry
 --     by { intro,
 --       simp only [range_append, reverse_range],
 --       simp_rw range_eq_init_union_last, simp_rw inter_distrib_right,
@@ -405,23 +409,23 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
 --       rw [(hP (φ x)).1, (hQ (ψ x)).1, φxb, ψxb],
 --       simp only [subtype.val_eq_coe,singleton_inter_of_mem,coe_mem,empty_union,union_idempotent] },
 --     rintro x y h, ext, apply singleton_inj.mp, rw [← this x, ← this y, h] },
-
---   have l₁ : ∀ x y z, z ∈ (φ x).val.to_Walk.range ∩ (ψ y).val.to_Walk.range → x = y :=
---   by {
---     intros x y z hz,
---     have z_in_X : z ∈ X := meet_sub_X X_sep_AB (φ x) (ψ y) (hP (φ x)) (hQ (ψ y)) hz,
---     rw mem_inter at hz,
---     have z_is_x : z = x := by {
---       apply mem_singleton.mp, convert ← mem_inter.mpr ⟨hz.1,z_in_X⟩,
---       rw [range_eq_init_union_last, inter_distrib_right, φxb, (hP (φ x)).1],
+    sorry
+  have l₁ (x y z) (hz : z ∈ (φ x).val.to_Walk.range ∩ (ψ y).val.to_Walk.range) : x = y := by
+    have z_in_X : z ∈ X := meet_sub_X X_sep_AB (φ x) (ψ y) (hP (φ x)) (hQ (ψ y)) hz
+    rw [mem_inter] at hz
+    have z_is_x : z = x := by
+      apply mem_singleton.mp
+      convert ← mem_inter.mpr ⟨hz.1,z_in_X⟩
+      -- rw [range_eq_init_union_last, inter_distrib_right, φxb, (hP (φ x)).1],
 --       simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union], },
---     have z_is_y : z = y := by {
+      sorry
+    have z_is_y : z = y := by sorry
 --       apply mem_singleton.mp, convert ← mem_inter.mpr ⟨hz.2,z_in_X⟩,
 --       rw [range_eq_init_union_last, inter_distrib_right, ψxb, (hQ (ψ y)).1],
 --       simp only [subtype.val_eq_coe, singleton_inter_of_mem, coe_mem, empty_union] },
---     ext, exact z_is_x.symm.trans z_is_y },
-
---   have R_dis : pwd R :=
+    ext
+    exact z_is_x.symm.trans z_is_y
+  have R_dis : pwd R := sorry
 --   by {
 --     rintro ⟨γ₁, hγ₁⟩ ⟨γ₂, hγ₂⟩ h_dis,
 --     choose x hx using mem_image.mp hγ₁, replace hx := hx.2, subst hx,
@@ -436,8 +440,9 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
 --     { apply ψ.left_inv.injective, apply Q_dis, use z, exact hz }
 --   },
 
---   refine ⟨R, R_dis, _⟩, rw card_image_of_injective _ Ψ_inj, convert Fintype.card_coe X
-  sorry
+  refine ⟨R, R_dis, ?_⟩
+  rw [card_image_of_injective _ Ψ_inj]
+  exact Fintype.card_coe X
 
 lemma sep_of_sep_in_merge {e}
     (Y_sep : Separates (G /ₑ e) (image (merge_edge e) A) (image (merge_edge e) B) Y) :

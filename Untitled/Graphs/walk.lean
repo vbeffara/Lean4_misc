@@ -9,21 +9,21 @@ variable {V V' : Type*} {a b : V} {G : SimpleGraph V}
 
 namespace SimpleGraph
 
-noncomputable def Walk.support' {a b} : G.Walk a b → Finset V
-| Walk.nil => {a}
-| Walk.cons _ p => insert a p.support'
+namespace Walk
 
-noncomputable def Walk.init' {a b} : G.Walk a b → Finset V
-| Walk.nil => {}
-| Walk.cons _ p => insert a p.init'
+noncomputable def range (p : G.Walk a b) : Finset V := p.support.toFinset
 
-noncomputable def Walk.tail' {a b} : G.Walk a b → Finset V
-| Walk.nil => {}
-| Walk.cons _ p => p.support'
+noncomputable def init' {a b} : G.Walk a b → Finset V
+| nil => {}
+| cons _ p => insert a p.init'
 
-noncomputable def Walk.range (p : G.Walk a b) : Finset V := p.support.toFinset
+noncomputable def tail' {a b} : G.Walk a b → Finset V
+| nil => {}
+| cons _ p => p.range
 
-@[simp] lemma range_reverse {p : G.Walk a b} : p.reverse.range = p.range := by sorry
+@[simp] lemma range_reverse {p : G.Walk a b} : p.reverse.range = p.range := by simp [range]
+
+end Walk
 
 end SimpleGraph
 
@@ -226,7 +226,12 @@ noncomputable def push_Walk {a b} (f : V → V') : G.Walk a b → (G.map' f).Wal
 -- by { by_cases f e.fst = f e.snd; simp [push_step, push_step_aux, h] }
 
 @[simp] lemma push_range {a b} {f : V → V'} {p : G.Walk a b} :
-    (push_Walk f p).range = p.range.image f := sorry
+    (push_Walk f p).range = p.range.image f := by
+  induction p with
+  | nil => simp [Walk.range, push_Walk]
+  | cons h p ih =>
+    -- simp [push_Walk, push_step]
+    sorry
 -- begin
 --   refine rec₀ _ _ p, simp, rintro e p h q,
 --   rw [push_cons,range_cons,range_append,q,finset.image_union,push_step_range],
