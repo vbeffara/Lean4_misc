@@ -26,7 +26,7 @@ namespace AB_Walk
 
 def Reverse (p : AB_Walk G A B) : AB_Walk G B A := ⟨p.b, p.a, p.hb, p.ha, p.to_Walk.reverse⟩
 
-def Disjoint (p q : AB_Walk G A B) : Prop := List.Disjoint p.to_Walk.support q.to_Walk.support
+def Disjoint (p q : AB_Walk G A B) : Prop := _root_.Disjoint p.to_Walk.range q.to_Walk.range
 
 def pwd (P : Finset (AB_Walk G A B)) : Prop := P.toSet.Pairwise Disjoint
 
@@ -106,26 +106,26 @@ open AB_Walk
 -- end pwd
 
 def Separates (G : SimpleGraph V) (A B X : Finset V) : Prop :=
-  ∀ γ : AB_Walk G A B, ∃ x ∈ X, x ∈ γ.to_Walk.support
+  ∀ γ : AB_Walk G A B, (γ.to_Walk.range ∩ X).Nonempty
 
 namespace Separates
 
-lemma self : Separates G A B A := λ γ => ⟨γ.a, γ.ha, γ.to_Walk.start_mem_support⟩
+lemma self : Separates G A B A :=
+  λ γ => ⟨γ.a, Finset.mem_inter_of_mem (by simp [Walk.range]) γ.ha⟩
 
 lemma symm (h : Separates G A B X) : Separates G B A X := by
   intro p
-  obtain ⟨x, h1, h2⟩ := h p.Reverse
-  exact ⟨x, h1, by simpa [Reverse] using h2⟩
-
--- lemma comm : Separates G A B X ↔ Separates G B A X :=
--- ⟨Separates.symm,Separates.symm⟩
+  obtain ⟨x, h1⟩ := h p.Reverse
+  simp only [Reverse, range_reverse] at h1
+  exact ⟨x, h1⟩
 
 lemma inter_subset (h : Separates G A B X) : A ∩ B ⊆ X := by
   contrapose h
   obtain ⟨x, h1, h2⟩ := not_subset.mp h
   rw [mem_inter] at h1
   simp only [Separates, mem_coe, not_forall, not_exists, not_and]
-  exact ⟨⟨x, x, h1.1, h1.2, Walk.nil⟩, by simp [h2]⟩
+  refine ⟨⟨x, x, h1.1, h1.2, Walk.nil⟩, ?_⟩
+  simpa [Walk.range] using singleton_inter_of_not_mem h2
 
 end Separates
 
@@ -209,7 +209,7 @@ lemma bot_iff_no_edge : Fintype.card G.Dart = 0 ↔ G = ⊥ where
 lemma bot_Separates_iff : Separates ⊥ A B X ↔ (A ∩ B) ⊆ X where
   mp := Separates.inter_subset
   mpr := λ h ⟨a, b, ha, hb, p⟩ => by cases p with
-    | nil => exact ⟨a, h <| mem_inter.mpr ⟨ha, hb⟩, Walk.mem_support_nil_iff.mpr rfl⟩
+    | nil => exact ⟨a, by simpa [Walk.range] using h <| mem_inter_of_mem ha hb⟩
     | cons h' _ => cases h'
 
 lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card := by
@@ -230,12 +230,13 @@ lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card := by
   rcases hp with ⟨rfl, -, h4⟩
   rcases hq with ⟨rfl, -, h8⟩
   subst_vars
-  simp [AB_Walk.Disjoint]
+  simp [AB_Walk.Disjoint, Walk.range]
   rintro rfl
   simp at h
 
--- lemma AB_lift_dis (P' : Finset (AB_Walk (map f G) (A.image f) (B.image f))) :
---   pwd P' → pwd (P'.image (AB_Walk.lift f hf A B)) :=
+lemma AB_lift_dis {f : V → V'} {hf : G.Adapted f}
+  (P' : Finset (AB_Walk (map' f G) (A.image f) (B.image f))) :
+  pwd P' → pwd (P'.image (AB_Walk.lift f hf A B)) := sorry
 -- begin
 --   rintro hP' ⟨γ₁,h₁⟩ ⟨γ₂,h₂⟩ h, simp at h ⊢, choose z h using h,
 --   choose γ'₁ h'₁ h''₁ using mem_image.mp h₁,
@@ -462,9 +463,12 @@ lemma step_1 {e} (h_contract : isMenger (G /ₑ e))
 
   have Y_lt_min : Y.card < min_cut G A B := by
     obtain ⟨P₁, P₁_dis, P₁_eq_min₁⟩ := h_contract A₁ B₁
-    -- rw [Y_eq_min₁, ←P₁_eq_min₁, ←card_image_of_injective P₁ AB_Walk.lift_inj]
-    -- apply too_small, { apply AB_lift_dis, exact P₁_dis }, { exact merge_edge_adapted }
-    sorry
+    rw [Y_eq_min₁, ← P₁_eq_min₁]
+    rw [← card_image_of_injective P₁ AB_Walk.lift_inj]
+    · apply too_small
+      apply AB_lift_dis
+      exact P₁_dis
+    · exact merge_edge_adapted
 
   have X_sep_AB : Separates G A B X := sep_of_sep_in_merge Y.prop
   refine ⟨X, ?_, ?_, X_sep_AB, ?_⟩
@@ -474,13 +478,13 @@ lemma step_1 {e} (h_contract : isMenger (G /ₑ e))
     suffices Separates G A B Y.val from not_lt_of_le (min_cut.le' this) Y_lt_min
     intro p
     obtain ⟨z, hz⟩ := Y.prop (p.push <| merge_edge e)
-    refine ⟨z, hz.1, ?_⟩
-    simp [AB_Walk.push] at hz
---     rw [Walk.push_range,mem_image] at hz₁, choose x hx₁ hx₂ using hz₁,
---     by_cases x = e.snd; simp [merge_edge,h] at hx₂,
---     { rw [←hx₂] at hz₂, contradiction },
---     { rwa [←hx₂] } },
-    sorry
+    obtain ⟨hz1, hz2⟩ := Finset.mem_inter.1 hz
+    refine ⟨z, mem_inter_of_mem ?_ hz2⟩
+    simp [push] at hz1
+    obtain ⟨x, hx1, hx2⟩ := hz1
+    by_cases h : x = e.snd <;> simp [merge_edge, update, h] at hx2 <;> subst z
+    · contradiction
+    · assumption
   · simp [mem_union, mem_singleton]
   · refine le_antisymm ?_ (min_cut.le' X_sep_AB)
     exact (card_union_le _ _).trans (Nat.succ_le_of_lt Y_lt_min)

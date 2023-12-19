@@ -21,6 +21,10 @@ noncomputable def Walk.tail' {a b} : G.Walk a b → Finset V
 | Walk.nil => {}
 | Walk.cons _ p => p.support'
 
+noncomputable def Walk.range (p : G.Walk a b) : Finset V := p.support.toFinset
+
+@[simp] lemma range_reverse {p : G.Walk a b} : p.reverse.range = p.range := by sorry
+
 end SimpleGraph
 
 -- import tactic combinatorics.simple_graph.connectivity
@@ -66,8 +70,6 @@ def step (e : G.Dart) : G.Walk e.fst e.snd := Walk.cons e.is_adj Walk.nil
 
 -- @[simp] lemma cons_a : (cons e p hep).a = e.fst := rfl
 -- @[simp] lemma cons_b : (cons e p hep).b = p.b := rfl
-
-noncomputable def Walk.range (p : G.Walk a b) : Finset V := p.support.toFinset
 
 -- @[simp] lemma range_cons : (cons e p hep).range = {e.fst} ∪ p.range :=
 -- by simpa only [range, cons, walk.support_cons, list.to_finset_cons]
@@ -224,7 +226,7 @@ noncomputable def push_Walk {a b} (f : V → V') : G.Walk a b → (G.map' f).Wal
 -- by { by_cases f e.fst = f e.snd; simp [push_step, push_step_aux, h] }
 
 @[simp] lemma push_range {a b} {f : V → V'} {p : G.Walk a b} :
-    Walk.range (push_Walk f p) = (Finset.image f <| Walk.range p) := sorry
+    (push_Walk f p).range = p.range.image f := sorry
 -- begin
 --   refine rec₀ _ _ p, simp, rintro e p h q,
 --   rw [push_cons,range_cons,range_append,q,finset.image_union,push_step_range],
