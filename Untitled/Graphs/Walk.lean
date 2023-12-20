@@ -23,8 +23,9 @@ noncomputable def range (p : G.Walk a b) : Finset V := p.support.toFinset
 --   intros e p h q hpq, simp at hpq, specialize @q hpq, simp, rw ←q, refl
 -- end
 
-@[simp] lemma range_cast {p : G.Walk a b} {h : G.Walk a b = G.Walk c d} :
-    (cast h p).range = p.range := by sorry
+@[simp] lemma range_copy {p : G.Walk a b} {h1 : a = c} {h2 : b = d} :
+    (p.copy h1 h2).range = p.range := by
+  simp [range]
 
 @[simp] lemma range_reverse {p : G.Walk a b} : p.reverse.range = p.range := by simp [range]
 
@@ -308,17 +309,27 @@ noncomputable def pull_Walk_aux (f : V → V') (hf : G.Adapted f) (x y : V)
 --     exact ⟨cons ⟨⟨_,_⟩,hp e first_edge⟩ q h, by simp [hq]⟩ }
 -- end
 
-noncomputable def entrance (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) : X := by
+noncomputable def entrance (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) :
+    {x : V // x ∈ X ∧ x ∈ p.support } := by
   cases h : p.support.find? (· ∈ X) with
-  | some a => exact ⟨a, by simpa using List.find?_some h⟩
+  | some a => exact ⟨a, by simpa using List.find?_some h, List.find?_mem h⟩
   | none =>
     choose z hz using hX
     simp only [Walk.range, Finset.mem_inter, List.mem_toFinset] at hz
     simpa [hz.2] using List.find?_eq_none.mp h z hz.1
 
--- noncomputable def until (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
---   {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧
---     q.range ⊆ p.range ∧ q.init ∩ X = ∅ ∧ q.init ⊆ p.init ∧ q.tail ⊆ p.tail} :=
+noncomputable def exit (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) :
+    {x : V // x ∈ X ∧ x ∈ p.support } := by
+  sorry
+
+noncomputable def upto (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) :
+    {q : G.Walk a (entrance p X hX) // q.support ⊆ p.support ∧ q.init' ∩ X = ∅ ∧ q.init' ⊆ p.init' ∧
+      q.tail' ⊆ p.tail'} := by
+  let x := entrance p X hX
+  let q := p.takeUntil x.val x.prop.2
+  refine ⟨q, ?_, ?_, ?_, ?_⟩
+  · exact p.support_takeUntil_subset x.prop.2
+  all_goals { sorry }
 -- begin
 --   revert p, refine rec₀ _ _,
 --   { rintro u hu, choose z hz using hu, simp at hz, cases hz with hz₁ hz₂, subst z,

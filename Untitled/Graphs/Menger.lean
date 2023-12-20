@@ -26,7 +26,7 @@ namespace AB_Walk
 
 def Reverse (p : AB_Walk G A B) : AB_Walk G B A := ⟨p.b, p.a, p.hb, p.ha, p.to_Walk.reverse⟩
 
-def Disjoint (p q : AB_Walk G A B) : Prop := _root_.Disjoint p.to_Walk.range q.to_Walk.range
+def Disjoint (p q : AB_Walk G A B) : Prop := List.Disjoint p.to_Walk.support q.to_Walk.support
 
 def pwd (P : Finset (AB_Walk G A B)) : Prop := P.toSet.Pairwise Disjoint
 
@@ -352,8 +352,8 @@ noncomputable def endpoint (P : Finset (AB_Walk G A B)) (P_dis : pwd P) (P_eq : 
   have := P_dis p₁.prop p₂.prop
   contrapose! this
   simp at h
-  simp [this, AB_Walk.Disjoint, _root_.Disjoint]
-  use {p₁.val.b}
+  simp [this, AB_Walk.Disjoint, List.Disjoint]
+  use p₁.val.b
   simp [Walk.range] ; simp [h]
 
 noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
@@ -389,17 +389,15 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     have : x = ψ.symm γ := by simp only [Equiv.symm_symm, Equiv.apply_symm_apply]
     rw [this]
     rfl
-  let Ψ (x : X) : AB_Walk G A B := by
-    refine ⟨(φ x).val.a, (ψ x).val.a, (φ x).val.ha, (ψ x).val.ha, ?_⟩
-    refine Walk.append (φ x).val.to_Walk ?_
-    rw [φxb x, ← ψxb x]
-    exact (ψ x).val.to_Walk.reverse
+  let Ψ (x : X) : AB_Walk G A B := ⟨_, _, (φ x).val.ha, (ψ x).val.ha,
+    Walk.append ((φ x).1.to_Walk.copy rfl (φxb x)) ((ψ x).1.to_Walk.copy rfl (ψxb x)).reverse⟩
   have Ψ_inj : Injective Ψ := by
     have (x : X) : (Ψ x).to_Walk.range ∩ X = {x.val} := by
-      specialize hP (φ x) ; simp [minimal] at hP
-      specialize hQ (ψ x) ; simp [minimal] at hQ
-      simp only [Walk.range_append, eq_mpr_eq_cast, Walk.range_cast, Walk.range_reverse]
-      simp [range_eq_init_union_last, inter_distrib_right, hP, hQ, φxb, ψxb]
+      -- specialize hP (φ x) ; simp [minimal] at hP
+      -- specialize hQ (ψ x) ; simp [minimal] at hQ
+      -- simp [range_eq_init_union_last, inter_distrib_right, hP, hQ, φxb, ψxb]
+      -- rw [Walk.append_copy_copy]
+      sorry
     intro x y h
     ext
     apply singleton_inj.mp
@@ -423,28 +421,32 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     obtain ⟨y, -, hy⟩ := mem_image.mp hγ₂ ; subst hy
     contrapose! h_dis
     congr
-    rw [AB_Walk.Disjoint, not_disjoint_iff] at h_dis
+    simp [AB_Walk.Disjoint, List.Disjoint] at h_dis
     obtain ⟨a, ha₁, ha₂⟩ := h_dis
     have l₂ := l₁ y x a
     specialize l₁ x y a
-    simp at ha₁ ha₂ l₁ l₂
+    simp [Walk.range] at ha₁ ha₂ l₁ l₂
     cases ha₁ with
     | inl h => cases ha₂ with
       | inl h' =>
         specialize P_dis (φ x).prop (φ y).prop
-        rw [not_imp_comm, AB_Walk.Disjoint, not_disjoint_iff] at P_dis
+        rw [not_imp_comm, AB_Walk.Disjoint, List.Disjoint] at P_dis
+        simp at P_dis
         apply φ.left_inv.injective
         ext
-        exact P_dis ⟨a, h, h'⟩
-      | inr h' => exact l₁ h h'
+        exact P_dis a h h'
+      | inr h' =>
+        simp at h'
+        exact l₁ h h'
     | inr h => cases ha₂ with
       | inl h' => exact (l₂ h' h).symm
       | inr h' =>
         specialize Q_dis (ψ x).prop (ψ y).prop
-        rw [not_imp_comm, AB_Walk.Disjoint, not_disjoint_iff] at Q_dis
+        rw [not_imp_comm, AB_Walk.Disjoint, List.Disjoint] at Q_dis
+        simp at Q_dis
         apply ψ.left_inv.injective
         ext
-        exact Q_dis ⟨a, h, h'⟩
+        exact Q_dis a h h'
   refine ⟨_, R_dis, ?_⟩
   rw [card_image_of_injective _ Ψ_inj]
   exact Fintype.card_coe X
