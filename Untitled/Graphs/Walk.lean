@@ -25,6 +25,8 @@ noncomputable def range (p : G.Walk a b) : Finset V := p.support.toFinset
 
 @[simp] lemma range_reverse : p.reverse.range = p.range := by simp [range]
 
+def init₀ (p : G.Walk a b) : List V := p.support.dropLast
+
 noncomputable def init' {a b} : G.Walk a b → Finset V
 | nil => {}
 | cons _ p => insert a p.init'
@@ -33,6 +35,11 @@ noncomputable def init' {a b} : G.Walk a b → Finset V
   induction p generalizing c d with
   | nil => subst_vars ; rfl
   | cons h p ih => rw [Walk.copy_cons] ; simp [init', ih, h1]
+
+@[simp] lemma init₀_copy {h1 : a = c} {h2 : b = d} : (p.copy h1 h2).init₀ = p.init₀ := by
+  simp [init₀]
+
+def tail₀ (p : G.Walk a b) : List V := p.support.tail
 
 noncomputable def tail' {a b} : G.Walk a b → Finset V
 | nil => {}
@@ -192,6 +199,13 @@ noncomputable def push_Walk {a b} (f : V → V') : G.Walk a b → (G.map' f).Wal
   · exact (push_Walk f p).copy h.symm rfl
   · exact Walk.cons ⟨h, _, _, e, rfl, rfl⟩ (push_Walk f p)
 
+lemma support_push_Walk : (push_Walk f p).support ⊆ List.map f p.support := by
+  induction p with
+  | nil => simp [push_Walk]
+  | cons h p ih =>
+    rename_i u v w
+    by_cases h : f u = f v <;> simpa [push_Walk, h] using ih.trans <| List.subset_cons _ _
+
 -- @[simp] lemma push_nil : push_Walk f (@Walk.nil _ _ G a) = Walk.nil (f a) := rfl
 
 -- lemma push_cons (f : V → V') (e : G.dart) (p : G.Walk) (h : e.snd = p.a) :
@@ -325,6 +339,8 @@ noncomputable def upto (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Non
   let q := p.takeUntil x.val x.prop.2
   refine ⟨q, ?_, ?_, ?_, ?_⟩
   · exact p.support_takeUntil_subset x.prop.2
+  ·
+    sorry
   all_goals { sorry }
 -- begin
 --   revert p, refine rec₀ _ _,
