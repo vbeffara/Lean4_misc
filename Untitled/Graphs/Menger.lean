@@ -116,7 +116,7 @@ lemma self : Separates G A B A :=
 lemma symm (h : Separates G A B X) : Separates G B A X := by
   intro p
   obtain ⟨x, h1⟩ := h p.Reverse
-  simp only [Reverse, range_reverse] at h1
+  simp only [Reverse, Walk.range_reverse] at h1
   exact ⟨x, h1⟩
 
 lemma inter_subset (h : Separates G A B X) : A ∩ B ⊆ X := by
@@ -401,15 +401,15 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     exact ζ
   set R := image Ψ univ
   have Ψ_inj : Injective Ψ := by
-    have (x : X) : (Ψ x).to_Walk.range ∩ X = {x.val} := sorry
---     by { intro,
---       simp only [range_append, reverse_range],
---       simp_rw range_eq_init_union_last, simp_rw inter_distrib_right,
---       simp only [union_assoc],
---       rw [(hP (φ x)).1, (hQ (ψ x)).1, φxb, ψxb],
---       simp only [subtype.val_eq_coe,singleton_inter_of_mem,coe_mem,empty_union,union_idempotent] },
---     rintro x y h, ext, apply singleton_inj.mp, rw [← this x, ← this y, h] },
-    sorry
+    have (x : X) : (Ψ x).to_Walk.range ∩ X = {x.val} := by
+      specialize hP (φ x) ; simp [minimal] at hP
+      specialize hQ (ψ x) ; simp [minimal] at hQ
+      simp only [Walk.range_append, eq_mpr_eq_cast, Walk.range_cast, Walk.range_reverse]
+      simp [range_eq_init_union_last, inter_distrib_right, hP, hQ, φxb, ψxb]
+    intro x y h
+    ext
+    apply singleton_inj.mp
+    rw [← this, ← this, h]
   have l₁ (x y z) (hz : z ∈ (φ x).val.to_Walk.range ∩ (ψ y).val.to_Walk.range) : x = y := by
     have z_in_X : z ∈ X := meet_sub_X X_sep_AB (φ x) (ψ y) (hP (φ x)) (hQ (ψ y)) hz
     rw [mem_inter] at hz
@@ -437,7 +437,6 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
 --     cases hz, { rw inter_comm at hz, exact (l₁ y x z hz).symm },
 --     { apply ψ.left_inv.injective, apply Q_dis, use z, exact hz }
 --   },
-
   refine ⟨R, R_dis, ?_⟩
   rw [card_image_of_injective _ Ψ_inj]
   exact Fintype.card_coe X

@@ -5,7 +5,7 @@ set_option autoImplicit false
 
 open Classical SimpleGraph
 
-variable {V V' : Type*} {a b c : V} {G : SimpleGraph V}
+variable {V V' : Type*} {a b c d : V} {G : SimpleGraph V}
 
 namespace SimpleGraph
 
@@ -15,6 +15,16 @@ noncomputable def range (p : G.Walk a b) : Finset V := p.support.toFinset
 
 @[simp] lemma range_cons {h : G.Adj a b} {p : G.Walk b c} : (cons h p).range = {a} ∪ p.range := by
   simp [range] ; rfl
+
+@[simp] lemma range_append {p : G.Walk a b} {q : G.Walk b c} :
+    (append p q).range = p.range ∪ q.range := sorry
+-- begin
+--   revert p, refine rec₀ _ _, simp,
+--   intros e p h q hpq, simp at hpq, specialize @q hpq, simp, rw ←q, refl
+-- end
+
+@[simp] lemma range_cast {p : G.Walk a b} {h : G.Walk a b = G.Walk c d} :
+    (cast h p).range = p.range := by sorry
 
 @[simp] lemma range_reverse {p : G.Walk a b} : p.reverse.range = p.range := by simp [range]
 
@@ -158,12 +168,6 @@ lemma range_eq_init_union_last {p : G.Walk a b} : p.range = p.init' ∪ {b} := b
 -- begin
 --   rcases e with ⟨⟨u,v⟩,e⟩, rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩,
 --   simp at hep hpq, substs a b, refl
--- end
-
--- @[simp] lemma range_append : (append p q hpq).range = p.range ∪ q.range :=
--- begin
---   revert p, refine rec₀ _ _, simp,
---   intros e p h q hpq, simp at hpq, specialize @q hpq, simp, rw ←q, refl
 -- end
 
 -- lemma mem_append : z ∈ (append p q hpq).p.support ↔ z ∈ p.p.support ∨ z ∈ q.p.support :=
