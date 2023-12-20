@@ -393,11 +393,10 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     Walk.append ((φ x).1.to_Walk.copy rfl (φxb x)) ((ψ x).1.to_Walk.copy rfl (ψxb x)).reverse⟩
   have Ψ_inj : Injective Ψ := by
     have (x : X) : (Ψ x).to_Walk.range ∩ X = {x.val} := by
-      -- specialize hP (φ x) ; simp [minimal] at hP
-      -- specialize hQ (ψ x) ; simp [minimal] at hQ
-      -- simp [range_eq_init_union_last, inter_distrib_right, hP, hQ, φxb, ψxb]
-      -- rw [Walk.append_copy_copy]
-      sorry
+      specialize hP (φ x) ; simp [minimal] at hP
+      specialize hQ (ψ x) ; simp [minimal] at hQ
+      simp only [Walk.range_append, Walk.range_copy, Walk.range_reverse]
+      simp [range_eq_init_union_last, inter_distrib_right, hP, hQ, φxb, ψxb]
     intro x y h
     ext
     apply singleton_inj.mp

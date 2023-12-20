@@ -5,7 +5,7 @@ set_option autoImplicit false
 
 open Classical SimpleGraph
 
-variable {V V' : Type*} {a b c d : V} {G : SimpleGraph V}
+variable {V V' : Type*} {a b c d : V} {G : SimpleGraph V} {p : G.Walk a b} {f : V → V'}
 
 namespace SimpleGraph
 
@@ -16,22 +16,23 @@ noncomputable def range (p : G.Walk a b) : Finset V := p.support.toFinset
 @[simp] lemma range_cons {h : G.Adj a b} {p : G.Walk b c} : (cons h p).range = {a} ∪ p.range := by
   simp [range] ; rfl
 
-@[simp] lemma range_append {p : G.Walk a b} {q : G.Walk b c} :
-    (append p q).range = p.range ∪ q.range := sorry
--- begin
---   revert p, refine rec₀ _ _, simp,
---   intros e p h q hpq, simp at hpq, specialize @q hpq, simp, rw ←q, refl
--- end
+@[simp] lemma range_append {q : G.Walk b c} : (append p q).range = p.range ∪ q.range := by
+  ext ; simp [range]
 
-@[simp] lemma range_copy {p : G.Walk a b} {h1 : a = c} {h2 : b = d} :
+@[simp] lemma range_copy {h1 : a = c} {h2 : b = d} :
     (p.copy h1 h2).range = p.range := by
   simp [range]
 
-@[simp] lemma range_reverse {p : G.Walk a b} : p.reverse.range = p.range := by simp [range]
+@[simp] lemma range_reverse : p.reverse.range = p.range := by simp [range]
 
 noncomputable def init' {a b} : G.Walk a b → Finset V
 | nil => {}
 | cons _ p => insert a p.init'
+
+@[simp] lemma init'_copy {h1 : a = c} {h2 : b = d} : (p.copy h1 h2).init' = p.init' := by
+  induction p generalizing c d with
+  | nil => subst_vars ; rfl
+  | cons h p ih => rw [Walk.copy_cons] ; simp [init', ih, h1]
 
 noncomputable def tail' {a b} : G.Walk a b → Finset V
 | nil => {}
@@ -103,7 +104,7 @@ def step (e : G.Dart) : G.Walk e.fst e.snd := Walk.cons e.is_adj Walk.nil
 
 -- @[simp] lemma init_cons : (cons e p hep).init = {e.fst} ∪ p.init := rec_cons
 
-lemma range_eq_init_union_last {p : G.Walk a b} : p.range = p.init' ∪ {b} := by
+lemma range_eq_init_union_last : p.range = p.init' ∪ {b} := by
   induction p with
   | nil => simp [Walk.range, Walk.init']
   | cons h p ih => simp [Walk.init', ih] ; rfl
@@ -177,15 +178,19 @@ lemma range_eq_init_union_last {p : G.Walk a b} : p.range = p.init' ∪ {b} := b
 --   rw [append, append_aux], simp only [walk.mem_support_append_iff]
 -- end
 
-noncomputable def push_step (f : V → V') (e : G.Dart) : (G.map' f).Walk (f e.fst) (f e.snd) := by
-  by_cases h : f e.fst = f e.snd
-  · rw [h]
-  · refine @step V' (G.map' f) ⟨(f e.fst, f e.snd), ?_⟩
-    simpa [map', h] using ⟨e.fst, e.snd, e.is_adj, rfl, rfl⟩
+-- noncomputable def push_step (f : V → V') (e : G.Dart) : (G.map' f).Walk (f e.fst) (f e.snd) := by
+--   by_cases h : f e.fst = f e.snd
+--   · rw [h]
+--   · refine @step V' (G.map' f) ⟨(f e.fst, f e.snd), ?_⟩
+--     simpa [map', h] using ⟨e.fst, e.snd, e.is_adj, rfl, rfl⟩
 
 noncomputable def push_Walk {a b} (f : V → V') : G.Walk a b → (G.map' f).Walk (f a) (f b)
 | Walk.nil => Walk.nil
-| Walk.cons e p => push_step f ⟨(_,_), e⟩ |>.append (push_Walk f p)
+| Walk.cons e p => by
+  rename_i c
+  by_cases h : f a = f c
+  · exact (push_Walk f p).copy h.symm rfl
+  · exact Walk.cons ⟨h, _, _, e, rfl, rfl⟩ (push_Walk f p)
 
 -- @[simp] lemma push_nil : push_Walk f (@Walk.nil _ _ G a) = Walk.nil (f a) := rfl
 
@@ -237,23 +242,13 @@ noncomputable def push_Walk {a b} (f : V → V') : G.Walk a b → (G.map' f).Wal
 -- @[simp] lemma push_step_range : (push_step f e).range = {f e.fst, f e.snd} :=
 -- by { by_cases f e.fst = f e.snd; simp [push_step, push_step_aux, h] }
 
-@[simp] lemma push_range {a b} {f : V → V'} {p : G.Walk a b} :
-    (push_Walk f p).range = p.range.image f := by
+@[simp] lemma push_range : (push_Walk f p).range = p.range.image f := by
   induction p with
   | nil => simp [Walk.range, push_Walk]
   | cons h p ih =>
-    -- simp [push_Walk, push_step]
-    sorry
--- begin
---   refine rec₀ _ _ p, simp, rintro e p h q,
---   rw [push_cons,range_cons,range_append,q,finset.image_union,push_step_range],
---   ext, split; intro h',
---   { rw finset.mem_union at h' ⊢, cases h', simp at h', cases h', left, subst a, simp,
---     right, subst a, rw h, apply finset.mem_image_of_mem, exact start_mem_range,
---     right, exact h' },
---   { rw finset.mem_union at h' ⊢, cases h', simp at h', subst a, left, simp, right,
---     exact h' }
--- end
+    rename_i u v w
+    by_cases h' : f u = f v <;> simp [push_Walk, h', ih, Finset.image_union]
+    exact ⟨v, by simp [Walk.range], rfl⟩
 
 -- variables {hf : adapted f G} {p' : (map f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
 
@@ -320,7 +315,8 @@ noncomputable def entrance (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X)
 
 noncomputable def exit (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) :
     {x : V // x ∈ X ∧ x ∈ p.support } := by
-  sorry
+  let y := entrance p.reverse X (by simpa using hX)
+  convert y using 3 ; simp
 
 noncomputable def upto (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) :
     {q : G.Walk a (entrance p X hX) // q.support ⊆ p.support ∧ q.init' ∩ X = ∅ ∧ q.init' ⊆ p.init' ∧
