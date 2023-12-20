@@ -308,6 +308,14 @@ noncomputable def pull_Walk_aux (f : V → V') (hf : G.Adapted f) (x y : V)
 --     exact ⟨cons ⟨⟨_,_⟩,hp e first_edge⟩ q h, by simp [hq]⟩ }
 -- end
 
+noncomputable def entrance (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) : X := by
+  cases h : p.support.find? (· ∈ X) with
+  | some a => exact ⟨a, by simpa using List.find?_some h⟩
+  | none =>
+    choose z hz using hX
+    simp only [Walk.range, Finset.mem_inter, List.mem_toFinset] at hz
+    simpa [hz.2] using List.find?_eq_none.mp h z hz.1
+
 -- noncomputable def until (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
 --   {q : G.Walk // q.a = p.a ∧ q.b ∈ X ∧
 --     q.range ⊆ p.range ∧ q.init ∩ X = ∅ ∧ q.init ⊆ p.init ∧ q.tail ⊆ p.tail} :=

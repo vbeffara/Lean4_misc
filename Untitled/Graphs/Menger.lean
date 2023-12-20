@@ -52,9 +52,8 @@ noncomputable def push (f : V → V') (p : AB_Walk G A B) :
 lemma lift_inj {f : V → V'} {hf : G.Adapted f} : Injective (lift f hf A B) := sorry
 -- left_inverse.injective push_lift
 
--- noncomputable def trim_aux (p : AB_Walk G A B) :
---   {q : AB_Walk G A B // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
--- begin
+noncomputable def trim_aux (p : AB_Walk G A B) :
+    {q : AB_Walk G A B // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} := by
 --   rcases p with ⟨p₁, p₁a, p₁b⟩,
 --   have h₁ : (p₁.range ∩ A).nonempty := ⟨p₁.a, by simp [p₁a]⟩,
 --   rcases p₁.after A h₁ with ⟨p₂, p₂a, p₂b, p₂r, p₂i, -, p₂t⟩,
@@ -63,22 +62,21 @@ lemma lift_inj {f : V → V'} {hf : G.Adapted f} : Injective (lift f hf A B) := 
 --   refine ⟨⟨p₃, p₃a.symm ▸ p₂a, p₃b⟩, ⟨by simp [p₃i], _⟩, p₃r.trans p₂r⟩,
 --   have : p₃.tail ∩ A ⊆ p₂.tail ∩ A := inter_subset_inter_right p₃t,
 --   rw ←subset_empty, apply this.trans, rw p₂t, refl
--- end
+  sorry
 
--- noncomputable def trim (p : AB_Walk G A B) : AB_Walk G A B := p.trim_aux.val
+noncomputable def trim (p : AB_Walk G A B) : AB_Walk G A B := p.trim_aux.val
 
 -- lemma trim_minimal {p : AB_Walk G A B} : p.trim.minimal := p.trim_aux.prop.1
 
 -- lemma trim_range {p : AB_Walk G A B} : p.trim.to_Walk.range ⊆ p.to_Walk.range := p.trim_aux.prop.2
 
--- noncomputable def massage_aux (h : G₂ ≤ G₁) (p : AB_Walk G₂ A X) :
---   {q : AB_Walk G₁ A X // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} :=
--- begin
---   let p' := p.trim, rcases p'.to_Walk.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
+noncomputable def massage_aux (h : G₂ ≤ G₁) (p : AB_Walk G₂ A X) :
+    {q : AB_Walk G₁ A X // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} := by
+  -- let p' := p.trim, rcases p'.to_Walk.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
 --   refine ⟨⟨q, qa.symm ▸ p'.ha, qb.symm ▸ p'.hb⟩, _, _⟩,
 --   { rw [minimal,qi,qt], exact trim_minimal },
 --   { rw [qr], exact trim_range }
--- end
+  sorry
 
 -- noncomputable def massage (h : G₂ ≤ G₁) (p : AB_Walk G₂ A X) : AB_Walk G₁ A X :=
 -- (p.massage_aux h).val
@@ -359,10 +357,11 @@ noncomputable def endpoint (P : Finset (AB_Walk G A B)) (P_dis : pwd P) (P_eq : 
   simp [Walk.range] ; simp [h]
 
 noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
-  (X_eq_min : X.card = min_cut G A B) (X_sep_AB : Separates G A B X)
-  (ih : ∃ (P : Finset (AB_Walk (G -ₑ e) A X)), pwd P ∧ P.card = min_cut (G -ₑ e) A X) :
-  {P : Finset (AB_Walk G A X) // pwd P ∧ P.card = X.card ∧ ∀ p : P, p.val.minimal} := sorry
---   choose P h₁ h₂ using ih, use image (AB_Walk.massage minus_le) P, refine ⟨_,_,_⟩,
+    (X_eq_min : X.card = min_cut G A B) (X_sep_AB : Separates G A B X)
+    (ih : ∃ (P : Finset (AB_Walk (G -ₑ e) A X)), pwd P ∧ P.card = min_cut (G -ₑ e) A X) :
+    {P : Finset (AB_Walk G A X) // pwd P ∧ P.card = X.card ∧ ∀ p : P, p.val.minimal} := by
+  choose P h₁ h₂ using ih
+  -- use image (AB_Walk.massage minus_le) P, refine ⟨_,_,_⟩,
 --   { exact massage_disjoint h₁ },
 --   { apply (massage_card h₁).trans, apply le_antisymm h₁.le_B,
 --     rcases min_cut.set (G-e) A X with ⟨⟨Z,Z_sep₂_AB⟩,Z_eq_min⟩,
@@ -371,6 +370,7 @@ noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.
 --   { intro p, choose p' hp'₁ hp'₂ using mem_image.mp p.prop,
 --     have := (p'.massage_aux minus_le).prop.1, simp [AB_Walk.massage] at hp'₂, rw hp'₂ at this,
 --     simp, exact this }
+  sorry
 
 noncomputable def stitch (X_sep_AB : Separates G A B X)
     (P : Finset (AB_Walk G A X)) (P_dis: pwd P) (P_eq_X: P.card = X.card)
@@ -380,26 +380,20 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
   let φ : X ≃ P := (endpoint P P_dis P_eq_X).symm
   let ψ : X ≃ Q := (endpoint Q Q_dis Q_eq_X).symm
   have φxb (x : X) : (φ x).val.b = x.val := by
-    set γ := φ x with hγ
-    have : x = φ.symm γ := by simp only [Equiv.symm_symm, Equiv.apply_symm_apply]
+    set γ := φ x
+    have : x = φ.symm (φ x) := by simp only [Equiv.symm_symm, Equiv.apply_symm_apply]
     rw [this]
     rfl
   have ψxb (x : X) : (ψ x).val.b = x.val := by
-    set γ := ψ x with hγ
+    set γ := ψ x
     have : x = ψ.symm γ := by simp only [Equiv.symm_symm, Equiv.apply_symm_apply]
     rw [this]
     rfl
   let Ψ (x : X) : AB_Walk G A B := by
-    set γ := φ x with hγ
-    set δ := ψ x with hδ
-    have γbx : γ.val.b = x := φxb x
-    have δbx : δ.val.b = x := ψxb x
-    set ζ := δ.val.to_Walk.reverse
-    refine ⟨γ.val.a, δ.val.a, γ.val.ha, δ.val.ha, ?_⟩
-    refine Walk.append γ.val.to_Walk ?_
-    rw [γbx, ← δbx]
-    exact ζ
-  set R := image Ψ univ
+    refine ⟨(φ x).val.a, (ψ x).val.a, (φ x).val.ha, (ψ x).val.ha, ?_⟩
+    refine Walk.append (φ x).val.to_Walk ?_
+    rw [φxb x, ← ψxb x]
+    exact (ψ x).val.to_Walk.reverse
   have Ψ_inj : Injective Ψ := by
     have (x : X) : (Ψ x).to_Walk.range ∩ X = {x.val} := by
       specialize hP (φ x) ; simp [minimal] at hP
@@ -423,21 +417,35 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
       simp [range_eq_init_union_last, inter_distrib_right, ψxb y, (hQ (ψ y)).1]
     ext
     exact z_is_x.symm.trans z_is_y
-  have R_dis : pwd R := sorry
---   by {
---     rintro ⟨γ₁, hγ₁⟩ ⟨γ₂, hγ₂⟩ h_dis,
---     choose x hx using mem_image.mp hγ₁, replace hx := hx.2, subst hx,
---     choose y hy using mem_image.mp hγ₂, replace hy := hy.2, subst hy,
---     suffices : x = y, subst this,
---     simp only [inter_distrib_left, inter_distrib_right, subtype.val_eq_coe, range_append,
---       reverse_range, union_assoc] at h_dis,
---     choose z hz using h_dis, simp only [mem_union] at hz,
---     cases hz, { apply φ.left_inv.injective, apply P_dis, use z, exact hz },
---     cases hz, { exact l₁ x y z hz },
---     cases hz, { rw inter_comm at hz, exact (l₁ y x z hz).symm },
---     { apply ψ.left_inv.injective, apply Q_dis, use z, exact hz }
---   },
-  refine ⟨R, R_dis, ?_⟩
+  have R_dis : pwd (image Ψ univ) := by
+    rintro γ₁ hγ₁ γ₂ hγ₂ h_dis
+    obtain ⟨x, -, hx⟩ := mem_image.mp hγ₁ ; subst hx
+    obtain ⟨y, -, hy⟩ := mem_image.mp hγ₂ ; subst hy
+    contrapose! h_dis
+    congr
+    rw [AB_Walk.Disjoint, not_disjoint_iff] at h_dis
+    obtain ⟨a, ha₁, ha₂⟩ := h_dis
+    have l₂ := l₁ y x a
+    specialize l₁ x y a
+    simp at ha₁ ha₂ l₁ l₂
+    cases ha₁ with
+    | inl h => cases ha₂ with
+      | inl h' =>
+        specialize P_dis (φ x).prop (φ y).prop
+        rw [not_imp_comm, AB_Walk.Disjoint, not_disjoint_iff] at P_dis
+        apply φ.left_inv.injective
+        ext
+        exact P_dis ⟨a, h, h'⟩
+      | inr h' => exact l₁ h h'
+    | inr h => cases ha₂ with
+      | inl h' => exact (l₂ h' h).symm
+      | inr h' =>
+        specialize Q_dis (ψ x).prop (ψ y).prop
+        rw [not_imp_comm, AB_Walk.Disjoint, not_disjoint_iff] at Q_dis
+        apply ψ.left_inv.injective
+        ext
+        exact Q_dis ⟨a, h, h'⟩
+  refine ⟨_, R_dis, ?_⟩
   rw [card_image_of_injective _ Ψ_inj]
   exact Fintype.card_coe X
 
