@@ -337,15 +337,18 @@ lemma toto {P : V → Prop} (h : ∃ v ∈ p.support, P v) : P a ∨
       · exact ⟨h2, by simpa [h1] using h⟩
 
 noncomputable def takeUntil {a b} (p : G.Walk a b) (P : V → Prop) (h : ∃ v ∈ p.support, P v) :
-    (c : V) × G.Walk a c := by
+    (c : Subtype P) × {q : G.Walk a c // ∀ v ∈ q.init₀, ¬ P v} := by
   induction p with
-  | nil => exact ⟨_, Walk.nil⟩
+  | nil => simp at h ; exact ⟨⟨_, h⟩, Walk.nil, by simp [Walk.init₀]⟩
   | cons h p ih =>
     rename_i u v w e
     apply Or.by_cases (toto h) <;> intro h1
-    · exact ⟨u, Walk.nil⟩
-    · choose _ h3 h4 using h1
-      cases ih h4 with | mk c q => exact ⟨c, Walk.cons e q⟩
+    · exact ⟨⟨u, h1⟩, Walk.nil, by simp [Walk.init₀]⟩
+    · choose h2 h3 h4 using h1
+      cases ih h4 with | mk c q => exact ⟨c, Walk.cons e q, by simpa [h2] using q.prop⟩
+
+example {P : V → Prop} {h : ∃ v ∈ p.support, P v} : P (takeUntil p P h).1 := by
+  apply Subtype.prop
 
 noncomputable def entrance (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) :
     {x : V // x ∈ X ∧ x ∈ p.support } := by
