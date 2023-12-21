@@ -390,7 +390,6 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
       specialize hQ (ψ x) ; simp [minimal] at hQ
       simp only [Walk.range_append, Walk.range_copy, Walk.range_reverse]
       simp [range_eq_init_union_last, inter_distrib_right, hP, hQ, φxb, ψxb, Walk.init']
-      sorry
     intro x y h
     ext
     apply singleton_inj.mp
@@ -401,11 +400,15 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     have z_is_x : z = x := by
       apply mem_singleton.mp
       convert ← mem_inter.mpr ⟨hz.1,z_in_X⟩
-      simp [range_eq_init_union_last, inter_distrib_right, φxb x, (hP (φ x)).1]
+      have := (hP (φ x)).1
+      simp at this
+      simp [range_eq_init_union_last, inter_distrib_right, φxb x, this]
     have z_is_y : z = y := by
       apply mem_singleton.mp
       convert ← mem_inter.mpr ⟨hz.2,z_in_X⟩
-      simp [range_eq_init_union_last, inter_distrib_right, ψxb y, (hQ (ψ y)).1]
+      have := (hQ (ψ y)).1
+      simp at this
+      simp [range_eq_init_union_last, inter_distrib_right, ψxb y, this]
     ext
     exact z_is_x.symm.trans z_is_y
   have R_dis : pwd (image Ψ univ) := by

@@ -3,7 +3,7 @@ import Untitled.Graphs.Contraction
 
 set_option autoImplicit false
 
-open Classical SimpleGraph
+open Classical SimpleGraph List Finset
 
 variable {V V' : Type*} {a b c d : V} {G : SimpleGraph V} {p : G.Walk a b} {f : V → V'}
 
@@ -33,6 +33,11 @@ def init₀ (p : G.Walk a b) : List V := p.support.dropLast
 noncomputable def init' {a b} : G.Walk a b → Finset V
 | nil => {}
 | cons _ p => insert a p.init'
+
+@[simp] lemma init₀.to_Finset : p.init₀.toFinset = p.init' := by
+  induction p with
+  | nil => rfl
+  | cons h p ih => simp [ih, init']
 
 @[simp] lemma init'_copy {h1 : a = c} {h2 : b = d} : (p.copy h1 h2).init' = p.init' := by
   induction p generalizing c d with
@@ -123,6 +128,9 @@ lemma support_eq_init₀_union_last : p.support = p.init₀ ++ [b] := by
   induction p with
   | nil => simp [Walk.init₀]
   | cons h p ih => simp [ih]
+
+lemma support_eq_head_union_tail₀ : p.support = a :: p.tail₀ := by
+  cases p <;> simp [Walk.tail₀]
 
 -- by { refine rec₀ _ _ p, { intro u, refl }, { rintro e p h q, simp [q] } }
 
@@ -326,7 +334,7 @@ noncomputable def pull_Walk_aux (f : V → V') (hf : G.Adapted f) (x y : V)
 --     exact ⟨cons ⟨⟨_,_⟩,hp e first_edge⟩ q h, by simp [hq]⟩ }
 -- end
 
-lemma toto {P : V → Prop} (h : ∃ v ∈ p.support, P v) : P a ∨
+lemma head_or_exists_tail {P : V → Prop} (h : ∃ v ∈ p.support, P v) : P a ∨
     (¬ P a ∧ ∃ hp : ¬ p.Nil, ∃ v ∈ (p.tail hp).support, P v) := by
   by_cases h1 : P a
   · left ; assumption
@@ -336,63 +344,28 @@ lemma toto {P : V → Prop} (h : ∃ v ∈ p.support, P v) : P a ∨
       · cases h2 Walk.nil_nil
       · exact ⟨h2, by simpa [h1] using h⟩
 
-noncomputable def takeUntil {a b} (p : G.Walk a b) (P : V → Prop) (h : ∃ v ∈ p.support, P v) :
-    (c : Subtype P) × {q : G.Walk a c // ∀ v ∈ q.init₀, ¬ P v} := by
+noncomputable def takeUntil_aux {a b} (p : G.Walk a b) (P : V → Prop) (h : ∃ v ∈ p.support, P v) :
+    (c : Subtype P) × {q : G.Walk a c // q.support <+: p.support ∧ ∀ v ∈ q.init₀, ¬ P v} := by
   induction p with
-  | nil => simp at h ; exact ⟨⟨_, h⟩, Walk.nil, by simp [Walk.init₀]⟩
+  | nil => simp at h ; refine ⟨⟨_, h⟩, Walk.nil, prefix_rfl, by simp [Walk.init₀]⟩
   | cons h p ih =>
     rename_i u v w e
-    apply Or.by_cases (toto h) <;> intro h1
-    · exact ⟨⟨u, h1⟩, Walk.nil, by simp [Walk.init₀]⟩
+    apply (head_or_exists_tail h).by_cases <;> intro h1
+    · refine ⟨⟨u, h1⟩, Walk.nil, prefix_iff_eq_take.mpr rfl, by simp [Walk.init₀]⟩
     · choose h2 h3 h4 using h1
-      cases ih h4 with | mk c q => exact ⟨c, Walk.cons e q, by simpa [h2] using q.prop⟩
+      cases ih h4 with | mk c q =>
+        exact ⟨c, Walk.cons e q, by simp [cons_prefix_iff, q.prop.1], by simpa [h2] using q.prop.2⟩
 
-example {P : V → Prop} {h : ∃ v ∈ p.support, P v} : P (takeUntil p P h).1 := by
-  apply Subtype.prop
+noncomputable def entrance (p : G.Walk a b) (P : V → Prop) (h : ∃ v ∈ p.support, P v) : V :=
+  (takeUntil_aux p P h).1
 
-noncomputable def entrance (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) :
-    {x : V // x ∈ X ∧ x ∈ p.support } := by
-  cases h : p.support.find? (· ∈ X) with
-  | some a => exact ⟨a, by simpa using List.find?_some h, List.find?_mem h⟩
-  | none =>
-    choose z hz using hX
-    simp only [Walk.range, Finset.mem_inter, List.mem_toFinset] at hz
-    simpa [hz.2] using List.find?_eq_none.mp h z hz.1
+noncomputable def takeUntil (p : G.Walk a b) (P : V → Prop) (h : ∃ v ∈ p.support, P v) :
+    G.Walk a (entrance p P h) := (takeUntil_aux p P h).2.1
 
-noncomputable def exit (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) :
-    {x : V // x ∈ X ∧ x ∈ p.support } := by
-  let y := entrance p.reverse X (by simpa using hX)
-  convert y using 3 ; simp
-
--- noncomputable def upto (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) :
---     {q : G.Walk a (entrance p X hX) // q.support ⊆ p.support ∧ q.init' ∩ X = ∅ ∧ q.init' ⊆ p.init' ∧
---       q.tail' ⊆ p.tail'} := by
---   let x := entrance p X hX
---   let q := p.takeUntil x.val x.prop.2
---   refine ⟨q, ?_, ?_, ?_, ?_⟩
---   · exact p.support_takeUntil_subset x.prop.2
---   ·
---     sorry
---   all_goals { sorry }
--- begin
---   revert p, refine rec₀ _ _,
---   { rintro u hu, choose z hz using hu, simp at hz, cases hz with hz₁ hz₂, subst z,
---     exact ⟨nil u, rfl, hz₂, by refl, rfl, by refl, by refl⟩ },
---   { rintro e p h₁ ih h₂, by_cases e.fst ∈ X,
---     { exact ⟨nil e.fst, rfl, h, by simp, rfl, by simp [init], by simp [tail]⟩ },
---     { simp at h₂, choose z hz using h₂, simp at hz, cases hz with hz₁ hz₂,
---       have : z ≠ e.fst := by { intro h, rw h at hz₂, contradiction },
---       simp [this] at hz₁,
---       have : z ∈ p.range ∩ X := finset.mem_inter.mpr ⟨hz₁,hz₂⟩,
---       specialize ih ⟨z,this⟩, rcases ih with ⟨q,hq₁,hq₂,hq₃,hq₄,hq₅,hq₆⟩,
---       rw ←hq₁ at h₁,
---       refine ⟨cons e q h₁, rfl, hq₂, _, _, _, by simp [hq₃]⟩,
---       { simp, apply finset.union_subset_union, refl, exact hq₃ },
---       { simp [finset.inter_distrib_right,hq₄,h] },
---       { simp, apply finset.union_subset_union, refl, exact hq₅ }
---     }
---   }
--- end
+-- noncomputable def exit (p : G.Walk a b) (X : Finset V) (hX : (p.range ∩ X).Nonempty) :
+--     {x : V // x ∈ X ∧ x ∈ p.support } := by
+--   let y := entrance p.reverse X (by simpa using hX)
+--   convert y using 3 ; simp
 
 -- noncomputable def after (p : G.Walk) (X : finset V) (hX : (p.range ∩ X).nonempty) :
 --   {q : G.Walk // q.a ∈ X ∧ q.b = p.b ∧
