@@ -33,7 +33,7 @@ def Disjoint (p q : AB_Walk G A B) : Prop := List.Disjoint p.to_Walk.support q.t
 def pwd (P : Finset (AB_Walk G A B)) : Prop := P.toSet.Pairwise Disjoint
 
 def minimal (p : AB_Walk G A B) : Prop :=
-  p.to_Walk.init' ∩ B = ∅ ∧ p.to_Walk.tail' ∩ A = ∅
+  p.to_Walk.init₀.toFinset ∩ B = ∅ ∧ p.to_Walk.tail' ∩ A = ∅
 
 noncomputable def lift (f : V → V') (hf : G.Adapted f) :
     AB_Walk (G.map' f) (A.image f) (B.image f) → AB_Walk G A B := by
@@ -389,7 +389,8 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
       specialize hP (φ x) ; simp [minimal] at hP
       specialize hQ (ψ x) ; simp [minimal] at hQ
       simp only [Walk.range_append, Walk.range_copy, Walk.range_reverse]
-      simp [range_eq_init_union_last, inter_distrib_right, hP, hQ, φxb, ψxb]
+      simp [range_eq_init_union_last, inter_distrib_right, hP, hQ, φxb, ψxb, Walk.init']
+      sorry
     intro x y h
     ext
     apply singleton_inj.mp
