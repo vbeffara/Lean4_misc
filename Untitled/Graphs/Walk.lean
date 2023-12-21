@@ -299,9 +299,9 @@ noncomputable def pull_Walk_aux (f : V → V') (hf : G.Adapted f) (x y : V)
 --     congr, exact p₂.2.2.2 }
 -- end
 
--- noncomputable def pull_Walk (f : V → V') (hf : adapted f G) (p' : (map f G).Walk) (x y : V)
---   (hx : f x = p'.a) (hy : f y = p'.b) : G.Walk :=
--- (pull_Walk_aux f hf p' x y hx hy).val
+noncomputable def pull_Walk (f : V → V') (hf : G.Adapted f) (x y : V)
+    (p' : (G.map' f).Walk (f x) (f y)) : G.Walk x y :=
+  pull_Walk_aux f hf x y p'
 
 -- lemma pull_Walk_a : (pull_Walk f hf p' x y hx hy).a = x :=
 -- (pull_Walk_aux f hf p' x y hx hy).prop.1
@@ -309,8 +309,9 @@ noncomputable def pull_Walk_aux (f : V → V') (hf : G.Adapted f) (x y : V)
 -- lemma pull_Walk_b : (pull_Walk f hf p' x y hx hy).b = y :=
 -- (pull_Walk_aux f hf p' x y hx hy).prop.2.1
 
--- lemma pull_Walk_push : push_Walk f (pull_Walk f hf p' x y hx hy) = p' :=
--- (pull_Walk_aux f hf p' x y hx hy).prop.2.2
+@[simp] lemma pull_Walk_push {hf x y} {p' : (G.map' f).Walk (f x) (f y)} :
+    push_Walk f (pull_Walk f hf x y p') = p' :=
+  (pull_Walk_aux f hf x y p').prop
 
 -- def transportable_to (G' : simple_graph V) (p : G.Walk) : Prop :=
 --   ∀ e : G.dart, e ∈ p.edges → G'.adj e.fst e.snd

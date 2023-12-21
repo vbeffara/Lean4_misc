@@ -16,7 +16,7 @@ namespace SimpleGraph
 
 namespace Menger
 
-structure AB_Walk (G : SimpleGraph V) (A B : Finset V) :=
+@[ext] structure AB_Walk (G : SimpleGraph V) (A B : Finset V) :=
   (a b : V) (ha : a ∈ A) (hb : b ∈ B)
   (to_Walk : G.Walk a b)
 
@@ -35,20 +35,36 @@ def pwd (P : Finset (AB_Walk G A B)) : Prop := P.toSet.Pairwise Disjoint
 def minimal (p : AB_Walk G A B) : Prop :=
   p.to_Walk.init₀.toFinset ∩ B = ∅ ∧ p.to_Walk.tail' ∩ A = ∅
 
-noncomputable def lift (f : V → V') (hf : G.Adapted f) :
-    AB_Walk (G.map' f) (A.image f) (B.image f) → AB_Walk G A B := by
-  rintro ⟨a, b, ha, hb, p⟩
-  choose a h₂ h₃ using mem_image.mp ha
-  choose b h₅ h₆ using mem_image.mp hb
-  subst_vars
-  exact ⟨a, b, h₂, h₅, pull_Walk_aux f hf a b p⟩
+noncomputable def lift (f : V → V') (hf : G.Adapted f)
+    (p : AB_Walk (G.map' f) (A.image f) (B.image f)) : AB_Walk G A B := by
+  choose a h1 h2 using mem_image.mp p.ha
+  choose b h3 h4 using mem_image.mp p.hb
+  exact ⟨a, b, h1, h3, pull_Walk f hf a b <| p.to_Walk.copy h2.symm h4.symm⟩
+
+@[simp] lemma lift_a {f : V → V'} {hf : G.Adapted f} {p : AB_Walk (G.map' f) (A.image f) (B.image f)} :
+    f (lift f hf p).a = p.a :=
+  Classical.choose_spec (mem_image.mp p.ha) |>.2
+
+@[simp] lemma lift_b {f : V → V'} {hf : G.Adapted f} {p : AB_Walk (G.map' f) (A.image f) (B.image f)} :
+    f (lift f hf p).b = p.b :=
+  Classical.choose_spec (mem_image.mp p.hb) |>.2
 
 noncomputable def push (f : V → V') (p : AB_Walk G A B) :
     AB_Walk (G.map' f) (A.image f) (B.image f) := by
   refine ⟨_, _, mem_image_of_mem f p.ha, mem_image_of_mem f p.hb, push_Walk f p.to_Walk⟩
 
-lemma push_lift {f : V → V'} {hf : G.Adapted f} : LeftInverse (push f (A := A) (B := B)) (lift f hf) := sorry
--- by { rintro ⟨p,ha,hb⟩, simp [lift,push], exact Walk.pull_Walk_push }
+@[simp] lemma push_a {f : V → V'} {p : AB_Walk G A B} : (push f p).a = f p.a := rfl
+
+@[simp] lemma push_b {f : V → V'} {p : AB_Walk G A B} : (push f p).b = f p.b := rfl
+
+lemma push_lift {f : V → V'} {hf : G.Adapted f} :
+    LeftInverse (push f (A := A) (B := B)) (lift f hf) := by
+  rintro ⟨a, b, ha, hb, p⟩
+  ext <;> try simp [push, lift]
+  have h1 := Classical.choose_spec (mem_image.mp ha) |>.2
+  have h2 := Classical.choose_spec (mem_image.mp hb) |>.2
+  have : HEq (p.copy rfl rfl) p := by rfl
+  convert this
 
 lemma lift_inj {f : V → V'} {hf : G.Adapted f} : Injective (lift f hf (A := A) (B := B)) :=
   LeftInverse.injective push_lift
@@ -67,9 +83,9 @@ noncomputable def trim_aux (p : AB_Walk G A B) :
 
 noncomputable def trim (p : AB_Walk G A B) : AB_Walk G A B := p.trim_aux.val
 
--- lemma trim_minimal {p : AB_Walk G A B} : p.trim.minimal := p.trim_aux.prop.1
+lemma trim_minimal {p : AB_Walk G A B} : p.trim.minimal := p.trim_aux.prop.1
 
--- lemma trim_range {p : AB_Walk G A B} : p.trim.to_Walk.range ⊆ p.to_Walk.range := p.trim_aux.prop.2
+lemma trim_range {p : AB_Walk G A B} : p.trim.to_Walk.range ⊆ p.to_Walk.range := p.trim_aux.prop.2
 
 noncomputable def massage_aux (h : G₂ ≤ G₁) (p : AB_Walk G₂ A X) :
     {q : AB_Walk G₁ A X // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} := by
@@ -341,7 +357,7 @@ noncomputable def endpoint (P : Finset (AB_Walk G A B)) (P_dis : pwd P) (P_eq : 
   refine (Fintype.bijective_iff_injective_and_card _).2 ⟨?_, by simp [P_eq]⟩
   intro p₁ p₂ h
   simp at h
-  ext
+  ext1
   have := P_dis p₁.prop p₂.prop
   contrapose! this
   simp [this, AB_Walk.Disjoint, List.Disjoint]
@@ -429,7 +445,7 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
         rw [not_imp_comm, AB_Walk.Disjoint, List.Disjoint] at P_dis
         simp at P_dis
         apply φ.left_inv.injective
-        ext
+        ext1
         exact P_dis a h h'
       | inr h' =>
         simp at h'
@@ -441,7 +457,7 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
         rw [not_imp_comm, AB_Walk.Disjoint, List.Disjoint] at Q_dis
         simp at Q_dis
         apply ψ.left_inv.injective
-        ext
+        ext1
         exact Q_dis a h h'
   refine ⟨_, R_dis, ?_⟩
   rw [card_image_of_injective _ Ψ_inj]
