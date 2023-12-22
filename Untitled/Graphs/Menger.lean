@@ -35,6 +35,12 @@ def pwd (P : Finset (AB_Walk G A B)) : Prop := P.toSet.Pairwise Disjoint
 def minimal (p : AB_Walk G A B) : Prop :=
   p.to_Walk.init₀.toFinset ∩ B = ∅ ∧ p.to_Walk.tail' ∩ A = ∅
 
+def minimal' (p : AB_Walk G A B) : Prop :=
+  (∀ x ∈ p.to_Walk.init₀, x ∉ B) ∧ (∀ x ∈ p.to_Walk.tail', x ∉ A)
+
+lemma minimal_iff_minimal' (p : AB_Walk G A B) : p.minimal ↔ p.minimal' := by
+  sorry
+
 noncomputable def lift (f : V → V') (hf : G.Adapted f)
     (p : AB_Walk (G.map' f) (A.image f) (B.image f)) : AB_Walk G A B := by
   choose a h1 h2 using mem_image.mp p.ha
@@ -400,16 +406,23 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     rfl
   let Ψ (x : X) : AB_Walk G A B := ⟨_, _, (φ x).val.ha, (ψ x).val.ha,
     Walk.append ((φ x).1.to_Walk.copy rfl (φxb x)) ((ψ x).1.to_Walk.copy rfl (ψxb x)).reverse⟩
+  have bla {x y : X} (h : y.val ∈ (Ψ x).to_Walk.support) : y = x := by
+    simp at h; simp [Walk.mem_support_iff_init₀_or_end] at h
+    cases h with
+    | inl h => cases h with
+      | inl h => simp only [minimal_iff_minimal', minimal'] at hP ; cases (hP (φ x)).1 y h y.prop
+      | inr h => ext1 ; simpa [← φxb x]
+    | inr h => cases h with
+      | inl h => simp only [minimal_iff_minimal', minimal'] at hQ ; cases (hQ (ψ x)).1 y h y.prop
+      | inr h => ext1 ; simpa [← ψxb x]
   have Ψ_inj : Injective Ψ := by
-    have (x : X) : (Ψ x).to_Walk.range ∩ X = {x.val} := by
-      specialize hP (φ x) ; simp [minimal] at hP
-      specialize hQ (ψ x) ; simp [minimal] at hQ
-      simp only [Walk.range_append, Walk.range_copy, Walk.range_reverse]
-      simp [range_eq_init_union_last, inter_distrib_right, hP, hQ, φxb, ψxb, Walk.init']
     intro x y h
-    ext
-    apply singleton_inj.mp
-    rw [← this, ← this, h]
+    apply bla
+    rw [← h]
+    simp
+    left
+    rw [← φxb]
+    apply Walk.end_mem_support
   have l₁ (x y z) (hz : z ∈ (φ x).val.to_Walk.range ∩ (ψ y).val.to_Walk.range) : x = y := by
     have z_in_X : z ∈ X := meet_sub_X X_sep_AB (φ x) (ψ y) (hP (φ x)) (hQ (ψ y)) hz
     rw [mem_inter] at hz

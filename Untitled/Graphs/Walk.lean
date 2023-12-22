@@ -23,16 +23,20 @@ noncomputable def range (p : G.Walk a b) : Finset V := p.support.toFinset
     (p.copy h1 h2).range = p.range := by
   simp [range]
 
-@[simp] lemma range_reverse : p.reverse.range = p.range := by simp [range]
-
 def init₀ (p : G.Walk a b) : List V := p.support.dropLast
+
+def init₀₀ {a b} : G.Walk a b → List V
+  | nil => []
+  | cons _ p => a :: p.init₀₀
+
+lemma init₀_eq_init₀₀ : p.init₀ = p.init₀₀ := sorry
 
 @[simp] lemma init₀_cons {e : G.Adj c a} : (cons e p).init₀ = c :: p.init₀ := by
   cases p <;> simp [init₀]
 
 noncomputable def init' {a b} : G.Walk a b → Finset V
-| nil => {}
-| cons _ p => insert a p.init'
+  | nil => {}
+  | cons _ p => insert a p.init'
 
 @[simp] lemma init₀.to_Finset : p.init₀.toFinset = p.init' := by
   induction p with
@@ -52,6 +56,12 @@ def tail₀ (p : G.Walk a b) : List V := p.support.tail
 noncomputable def tail' {a b} : G.Walk a b → Finset V
 | nil => {}
 | cons _ p => p.range
+
+lemma mem_support_iff_init₀_or_end {z} : z ∈ p.support ↔ z ∈ p.init₀ ∨ z = b := by
+  rw [init₀_eq_init₀₀]
+  induction p with
+  | nil => simp [init₀₀]
+  | cons _ p ih => simp [init₀₀, ih, or_assoc]
 
 end Walk
 
@@ -283,21 +293,20 @@ lemma support_push_Walk : (push_Walk f p).support ⊆ List.map f p.support := by
 -- variables {hf : adapted f G} {p' : (map f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
 
 noncomputable def pull_Walk_aux (f : V → V') (hf : G.Adapted f) (x y : V)
-  (p' : (G.map' f).Walk (f x) (f y)) : {w : G.Walk x y // push_Walk f w = p'} := sorry
--- begin
---   revert p' x y, refine rec₀ _ _,
---   { rintros u x y hx hy, simp at hx hy, subst hy, choose p h₃ using hf hx,
---     refine ⟨⟨p⟩,rfl,rfl,_⟩, apply push_eq_nil, exact h₃ },
---   { rintros ⟨⟨u,v⟩,⟨huv,ee⟩⟩ p h ih x y hx hy,
---     choose xx yy h₂ h₃ h₄ using ee, substs h₃ h₄, choose p₁ h₆ using hf hx,
---     obtain p₂ := ih yy y (h) hy,
---     let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨⟨_,_⟩,h₂⟩ p₂.2.1.symm) rfl,
---     refine ⟨pp, rfl, p₂.2.2.1, _⟩,
---     have h₇ := push_eq_nil f (f xx) ⟨p₁⟩ h₆,
---     simp [pp,push_append,h₇],
---     have h₈ := push_cons_ne f ⟨⟨_,_⟩,h₂⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
---     congr, exact p₂.2.2.2 }
--- end
+    (p' : (G.map' f).Walk (f x) (f y)) : {w : G.Walk x y // push_Walk f w = p'} := by
+  sorry
+  -- revert p' x y, refine rec₀ _ _,
+  -- { rintros u x y hx hy, simp at hx hy, subst hy, choose p h₃ using hf hx,
+  --   refine ⟨⟨p⟩,rfl,rfl,_⟩, apply push_eq_nil, exact h₃ },
+  -- { rintros ⟨⟨u,v⟩,⟨huv,ee⟩⟩ p h ih x y hx hy,
+  --   choose xx yy h₂ h₃ h₄ using ee, substs h₃ h₄, choose p₁ h₆ using hf hx,
+  --   obtain p₂ := ih yy y (h) hy,
+  --   let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨⟨_,_⟩,h₂⟩ p₂.2.1.symm) rfl,
+  --   refine ⟨pp, rfl, p₂.2.2.1, _⟩,
+  --   have h₇ := push_eq_nil f (f xx) ⟨p₁⟩ h₆,
+  --   simp [pp,push_append,h₇],
+  --   have h₈ := push_cons_ne f ⟨⟨_,_⟩,h₂⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
+  --   congr, exact p₂.2.2.2 }
 
 noncomputable def pull_Walk (f : V → V') (hf : G.Adapted f) (x y : V)
     (p' : (G.map' f).Walk (f x) (f y)) : G.Walk x y :=
