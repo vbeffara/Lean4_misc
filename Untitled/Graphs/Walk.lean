@@ -247,31 +247,15 @@ lemma support_push_Walk : (push_Walk f p).support ⊆ List.map f p.support := by
 --   rw [push_cons], simp [this,step]
 -- end
 
--- lemma push_append (f : V → V') (p q : G.Walk) (hpq : p.b = q.a) :
---   push_Walk f (Walk.append p q hpq) =
---   Walk.append (push_Walk f p) (push_Walk f q) (by simp [hpq]) :=
--- begin
---   revert p, refine rec₀ (by simp) _,
---   intros e p h ih hpq, by_cases h' : f e.fst = f e.snd,
---   { have h₁ := push_cons_eq f e p h h',
---     have h₂ := push_cons_eq f e (Walk.append p q hpq) (h.trans append_a.symm) h',
---       simp only [h₁, h₂, ih, append_cons] },
---   { have h₁ := push_cons_ne f e p h h',
---     have h₂ := push_cons_ne f e (Walk.append p q hpq) (h.trans append_a.symm) h',
---       simpa only [h₁, h₂, ih, append_cons] }
--- end
-
-lemma push_eq_nil {x y} (f : V → V') (w : V') (p : G.Walk x y) (hp : ∀ z ∈ p.support, f z = w) :
-  (push_Walk f p).Nil := sorry
--- begin
---   revert p, refine rec₀ _ _,
---   { intros, specialize hp u (by simp [Walk.nil]), simp [hp] },
---   { intros e p h ih hp,
---     have h₁ : f e.fst = w := by { apply hp, left, refl },
---     have h₂ : f e.snd = w := by { apply hp, right, rw h, exact p.p.start_mem_support },
---     rw push_cons_eq f e p h (h₁.trans h₂.symm),
---     apply ih, intros z hz, apply hp, right, exact hz }
--- end
+lemma push_append (q : G.Walk b c) :
+    push_Walk f (p.append q) = (push_Walk f p).append (push_Walk f q) := by
+  induction p with
+  | nil => rfl
+  | cons h p ih =>
+    rename_i u v w
+    by_cases huv : f u = f v <;> simp [push_Walk, huv, ih q]
+    rw [← Walk.append_copy_copy]
+    congr
 
 -- @[ext] lemma titi {p1 p2 : G.Walk a b} : p1.support = p2.support → p1 = p2 := sorry
 
@@ -283,6 +267,18 @@ lemma push_eq_nil' {x y} (f : V → V') (w : V') (p : G.Walk x y) (hp : ∀ z �
     simp at hp ; obtain ⟨h1, hp⟩ := hp
     subst_vars
     simpa [push_Walk, hp _ (Walk.start_mem_support _)] using ih hp
+
+-- lemma push_eq_nil {x y} (f : V → V') (w : V') (p : G.Walk x y) (hp : ∀ z ∈ p.support, f z = w) :
+--   (push_Walk f p).Nil := sorry
+-- begin
+--   revert p, refine rec₀ _ _,
+--   { intros, specialize hp u (by simp [Walk.nil]), simp [hp] },
+--   { intros e p h ih hp,
+--     have h₁ : f e.fst = w := by { apply hp, left, refl },
+--     have h₂ : f e.snd = w := by { apply hp, right, rw h, exact p.p.start_mem_support },
+--     rw push_cons_eq f e p h (h₁.trans h₂.symm),
+--     apply ih, intros z hz, apply hp, right, exact hz }
+-- end
 
 -- @[simp] lemma push_step_range : (push_step f e).range = {f e.fst, f e.snd} :=
 -- by { by_cases f e.fst = f e.snd; simp [push_step, push_step_aux, h] }
@@ -297,15 +293,8 @@ lemma push_eq_nil' {x y} (f : V → V') (w : V') (p : G.Walk x y) (hp : ∀ z �
 
 -- variables {hf : adapted f G} {p' : (map f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
 
-noncomputable def pwa (f : V → V') (hf : G.Adapted f) (x y : V) (x' y' : V') (hx : f x = x') (hy : f y = y')
-    (p' : (G.map' f).Walk x' y') : G.Walk x y := by
-  induction p' generalizing x y with
-  | nil => exact Classical.choose (hf (hx.trans hy.symm))
-  | cons h p ih =>
-    obtain ⟨h1, h2⟩ := h
-    choose l m h4 h5 h6 using h2
-    subst_vars
-    exact Walk.append (Classical.choose <| hf h5.symm) (Walk.cons h4 <| ih m y rfl rfl)
+lemma tata {q : G.Walk c d} (h1 : a = c) (h2 : b = d) :
+    p.copy h1 h2 = q ↔ p = q.copy h1.symm h2.symm := by sorry
 
 noncomputable def pwa2 (f : V → V') (hf : G.Adapted f) (x y : V) (x' y' : V') (hx : f x = x') (hy : f y = y')
     (p' : (G.map' f).Walk x' y') : {q : G.Walk x y // (push_Walk f q).copy hx hy = p'} := by
@@ -320,10 +309,16 @@ noncomputable def pwa2 (f : V → V') (hf : G.Adapted f) (x y : V) (x' y' : V') 
     choose l m h4 h5 h6 using id h2
     subst_vars
     set p1 := Classical.choose <| hf h5.symm
+    have h7 := Classical.choose_spec <| hf h5.symm
+    have h8 := push_eq_nil' _ _ _ h7
     specialize ih m y rfl rfl
     use p1.append (ih.val.cons h4)
-    simp
-    sorry
+    have := ih.prop
+    have h6 : f l ≠ f m := Eq.trans_ne h5 h1
+    rw [tata] at h8 this
+    simp [push_append, hf, push_Walk, h6, h8, this]
+    rw [← Walk.copy_rfl_rfl (Walk.cons _ _), Walk.append_copy_copy]
+    simp [Walk.copy_cons]
 
 noncomputable def pwa' (f : V → V') (hf : G.Adapted f) (x y : V)
     (p' : (G.map' f).Walk (f x) (f y)) : G.Walk x y :=
