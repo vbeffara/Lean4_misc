@@ -1,4 +1,4 @@
-import Mathlib
+import Mathlib.Combinatorics.SimpleGraph.Connectivity
 import Untitled.Graphs.Map
 
 set_option autoImplicit false

@@ -1,4 +1,4 @@
-import Mathlib
+-- import Mathlib
 import Untitled.Graphs.Contraction
 
 set_option autoImplicit false
@@ -23,16 +23,11 @@ noncomputable def range (p : G.Walk a b) : Finset V := p.support.toFinset
     (p.copy h1 h2).range = p.range := by
   simp [range]
 
-def init₀ (p : G.Walk a b) : List V := p.support.dropLast
-
-def init₀₀ {a b} : G.Walk a b → List V
+def init₀ {a b} : G.Walk a b → List V
   | nil => []
-  | cons _ p => a :: p.init₀₀
+  | cons _ p => a :: p.init₀
 
-lemma init₀_eq_init₀₀ : p.init₀ = p.init₀₀ := sorry
-
-@[simp] lemma init₀_cons {e : G.Adj c a} : (cons e p).init₀ = c :: p.init₀ := by
-  cases p <;> simp [init₀]
+@[simp] lemma init₀_cons {e : G.Adj c a} : (cons e p).init₀ = c :: p.init₀ := rfl
 
 noncomputable def init' {a b} : G.Walk a b → Finset V
   | nil => {}
@@ -41,7 +36,7 @@ noncomputable def init' {a b} : G.Walk a b → Finset V
 @[simp] lemma init₀.to_Finset : p.init₀.toFinset = p.init' := by
   induction p with
   | nil => rfl
-  | cons h p ih => simp [ih, init']
+  | cons _ p ih => simp [ih, init']
 
 @[simp] lemma init'_copy {h1 : a = c} {h2 : b = d} : (p.copy h1 h2).init' = p.init' := by
   induction p generalizing c d with
@@ -49,7 +44,7 @@ noncomputable def init' {a b} : G.Walk a b → Finset V
   | cons h p ih => rw [Walk.copy_cons] ; simp [init', ih, h1]
 
 @[simp] lemma init₀_copy {h1 : a = c} {h2 : b = d} : (p.copy h1 h2).init₀ = p.init₀ := by
-  simp [init₀]
+  subst_vars ; rfl
 
 def tail₀ (p : G.Walk a b) : List V := p.support.tail
 
@@ -58,10 +53,9 @@ noncomputable def tail' {a b} : G.Walk a b → Finset V
 | cons _ p => p.range
 
 lemma mem_support_iff_init₀_or_end {z} : z ∈ p.support ↔ z ∈ p.init₀ ∨ z = b := by
-  rw [init₀_eq_init₀₀]
   induction p with
-  | nil => simp [init₀₀]
-  | cons _ p ih => simp [init₀₀, ih, or_assoc]
+  | nil => simp [init₀]
+  | cons _ p ih => simp [init₀, ih, or_assoc]
 
 end Walk
 
@@ -137,7 +131,7 @@ lemma range_eq_init_union_last : p.range = p.init' ∪ {b} := by
 lemma support_eq_init₀_union_last : p.support = p.init₀ ++ [b] := by
   induction p with
   | nil => simp [Walk.init₀]
-  | cons h p ih => simp [ih]
+  | cons _ p ih => simp [ih]
 
 lemma support_eq_head_union_tail₀ : p.support = a :: p.tail₀ := by
   cases p <;> simp [Walk.tail₀]
@@ -267,8 +261,8 @@ lemma support_push_Walk : (push_Walk f p).support ⊆ List.map f p.support := by
 --       simpa only [h₁, h₂, ih, append_cons] }
 -- end
 
--- lemma push_eq_nil (f : V → V') (w : V') (p : G.Walk) (hp : ∀ z : V, z ∈ p.p.support → f z = w) :
---   push_Walk f p = Walk.nil w :=
+lemma push_eq_nil {x y} (f : V → V') (w : V') (p : G.Walk x y) (hp : ∀ z ∈ p.support, f z = w) :
+  (push_Walk f p).Nil := sorry
 -- begin
 --   revert p, refine rec₀ _ _,
 --   { intros, specialize hp u (by simp [Walk.nil]), simp [hp] },
@@ -278,6 +272,17 @@ lemma support_push_Walk : (push_Walk f p).support ⊆ List.map f p.support := by
 --     rw push_cons_eq f e p h (h₁.trans h₂.symm),
 --     apply ih, intros z hz, apply hp, right, exact hz }
 -- end
+
+-- @[ext] lemma titi {p1 p2 : G.Walk a b} : p1.support = p2.support → p1 = p2 := sorry
+
+lemma push_eq_nil' {x y} (f : V → V') (w : V') (p : G.Walk x y) (hp : ∀ z ∈ p.support, f z = w) :
+    (push_Walk f p).copy (hp _ p.start_mem_support) (hp _ p.end_mem_support) = Walk.nil := by
+  induction p with
+  | nil => simp at hp ; subst hp ; rfl
+  | cons h p ih =>
+    simp at hp ; obtain ⟨h1, hp⟩ := hp
+    subst_vars
+    simpa [push_Walk, hp _ (Walk.start_mem_support _)] using ih hp
 
 -- @[simp] lemma push_step_range : (push_step f e).range = {f e.fst, f e.snd} :=
 -- by { by_cases f e.fst = f e.snd; simp [push_step, push_step_aux, h] }
@@ -292,9 +297,42 @@ lemma support_push_Walk : (push_Walk f p).support ⊆ List.map f p.support := by
 
 -- variables {hf : adapted f G} {p' : (map f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
 
-noncomputable def pull_Walk_aux (f : V → V') (hf : G.Adapted f) (x y : V)
-    (p' : (G.map' f).Walk (f x) (f y)) : {w : G.Walk x y // push_Walk f w = p'} := by
-  sorry
+noncomputable def pwa (f : V → V') (hf : G.Adapted f) (x y : V) (x' y' : V') (hx : f x = x') (hy : f y = y')
+    (p' : (G.map' f).Walk x' y') : G.Walk x y := by
+  induction p' generalizing x y with
+  | nil => exact Classical.choose (hf (hx.trans hy.symm))
+  | cons h p ih =>
+    obtain ⟨h1, h2⟩ := h
+    choose l m h4 h5 h6 using h2
+    subst_vars
+    exact Walk.append (Classical.choose <| hf h5.symm) (Walk.cons h4 <| ih m y rfl rfl)
+
+noncomputable def pwa2 (f : V → V') (hf : G.Adapted f) (x y : V) (x' y' : V') (hx : f x = x') (hy : f y = y')
+    (p' : (G.map' f).Walk x' y') : {q : G.Walk x y // (push_Walk f q).copy hx hy = p'} := by
+  induction p' generalizing x y with
+  | nil =>
+    choose p hp using hf (hx.trans hy.symm)
+    use p
+    subst hy
+    exact push_eq_nil' f (f y) p hp
+  | cons h p ih =>
+    obtain ⟨h1, h2⟩ := h
+    choose l m h4 h5 h6 using id h2
+    subst_vars
+    set p1 := Classical.choose <| hf h5.symm
+    specialize ih m y rfl rfl
+    use p1.append (ih.val.cons h4)
+    simp
+    sorry
+
+noncomputable def pwa' (f : V → V') (hf : G.Adapted f) (x y : V)
+    (p' : (G.map' f).Walk (f x) (f y)) : G.Walk x y :=
+  pwa2 f hf x y (f x) (f y) rfl rfl p'
+
+example (f : V → V') (hf : G.Adapted f) (x y : V)
+    (p' : (G.map' f).Walk (f x) (f y)) : push_Walk f (pwa' f hf x y p') = p' :=
+  (pwa2 f hf x y (f x) (f y) rfl rfl p').prop
+
   -- revert p' x y, refine rec₀ _ _,
   -- { rintros u x y hx hy, simp at hx hy, subst hy, choose p h₃ using hf hx,
   --   refine ⟨⟨p⟩,rfl,rfl,_⟩, apply push_eq_nil, exact h₃ },
@@ -307,6 +345,10 @@ noncomputable def pull_Walk_aux (f : V → V') (hf : G.Adapted f) (x y : V)
   --   simp [pp,push_append,h₇],
   --   have h₈ := push_cons_ne f ⟨⟨_,_⟩,h₂⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
   --   congr, exact p₂.2.2.2 }
+
+noncomputable def pull_Walk_aux (f : V → V') (hf : G.Adapted f) (x y : V)
+    (p' : (G.map' f).Walk (f x) (f y)) : {w : G.Walk x y // push_Walk f w = p'} := by
+  exact pwa2 f hf x y (f x) (f y) rfl rfl p'
 
 noncomputable def pull_Walk (f : V → V') (hf : G.Adapted f) (x y : V)
     (p' : (G.map' f).Walk (f x) (f y)) : G.Walk x y :=

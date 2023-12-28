@@ -1,4 +1,4 @@
-import Mathlib
+import Mathlib.Tactic
 import Untitled.Graphs.Contraction
 import Untitled.Graphs.Map
 import Untitled.Graphs.Walk
@@ -38,8 +38,16 @@ def minimal (p : AB_Walk G A B) : Prop :=
 def minimal' (p : AB_Walk G A B) : Prop :=
   (∀ x ∈ p.to_Walk.init₀, x ∉ B) ∧ (∀ x ∈ p.to_Walk.tail', x ∉ A)
 
+lemma tototo : A ∩ B = ∅ ↔ ∀ x ∈ A, x ∉ B where
+  mp h x hA hB := by cases h ▸ Finset.mem_inter.mpr ⟨hA, hB⟩
+  mpr h := by
+    ext x ; constructor <;> intro h'
+    · obtain ⟨h1, h2⟩ := Finset.mem_inter.mp h'
+      cases h x h1 h2
+    · cases h'
+
 lemma minimal_iff_minimal' (p : AB_Walk G A B) : p.minimal ↔ p.minimal' := by
-  sorry
+  simp [minimal, minimal', tototo, -Walk.init₀.to_Finset]
 
 noncomputable def lift (f : V → V') (hf : G.Adapted f)
     (p : AB_Walk (G.map' f) (A.image f) (B.image f)) : AB_Walk G A B := by
