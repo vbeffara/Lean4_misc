@@ -33,10 +33,10 @@ def Disjoint (p q : AB_Walk G A B) : Prop := List.Disjoint p.to_Walk.support q.t
 def pwd (P : Finset (AB_Walk G A B)) : Prop := P.toSet.Pairwise Disjoint
 
 def minimal (p : AB_Walk G A B) : Prop :=
-  p.to_Walk.init₀.toFinset ∩ B = ∅ ∧ p.to_Walk.tail' ∩ A = ∅
+  p.to_Walk.init₀.toFinset ∩ B = ∅ ∧ p.to_Walk.tail₀.toFinset ∩ A = ∅
 
 def minimal' (p : AB_Walk G A B) : Prop :=
-  (∀ x ∈ p.to_Walk.init₀, x ∉ B) ∧ (∀ x ∈ p.to_Walk.tail', x ∉ A)
+  (∀ x ∈ p.to_Walk.init₀, x ∉ B) ∧ (∀ x ∈ p.to_Walk.tail₀, x ∉ A)
 
 lemma tototo : A ∩ B = ∅ ↔ ∀ x ∈ A, x ∉ B where
   mp h x hA hB := by cases h ▸ Finset.mem_inter.mpr ⟨hA, hB⟩
@@ -422,7 +422,7 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
   let Ψ (x : X) : AB_Walk G A B := ⟨_, _, (φ x).val.ha, (ψ x).val.ha,
     Walk.append ((φ x).1.to_Walk.copy rfl (φxb x)) ((ψ x).1.to_Walk.copy rfl (ψxb x)).reverse⟩
   have bla {x y : X} (h : y.val ∈ (Ψ x).to_Walk.support) : y = x := by
-    simp at h; simp [Walk.mem_support_iff_init₀_or_end] at h
+    simp at h; simp [Walk.support_eq_init₀_union_last] at h
     cases h with
     | inl h => cases h with
       | inl h => simp only [minimal_iff_minimal', minimal'] at hP ; cases (hP (φ x)).1 y h y.prop
@@ -443,14 +443,14 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     have z_is_x : z = x := by
       have := (hP (φ x))
       simp [minimal_iff_minimal', minimal'] at this
-      simp [support_eq_init₀_union_last] at hz1
+      simp [Walk.support_eq_init₀_union_last] at hz1
       cases hz1 with
       | inl h => cases this.1 z h z_in_X
       | inr h => simpa [φxb x] using h
     have z_is_y : z = y := by
       have := (hQ (ψ y))
       simp [minimal_iff_minimal', minimal'] at this
-      simp [support_eq_init₀_union_last] at hz2
+      simp [Walk.support_eq_init₀_union_last] at hz2
       cases hz2 with
       | inl h => cases this.1 z h z_in_X
       | inr h => simpa [ψxb y] using h

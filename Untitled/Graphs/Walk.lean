@@ -22,56 +22,9 @@ def init₀ {a b} : G.Walk a b → List V
 @[simp] lemma init₀_copy {h1 : a = c} {h2 : b = d} : (p.copy h1 h2).init₀ = p.init₀ := by
   subst_vars ; rfl
 
-def tail₀ {a b} : G.Walk a b → List V-- := p.support.tail
+def tail₀ {a b} : G.Walk a b → List V
   | nil => []
   | cons _ p => by rename_i c _ ; exact c :: p.tail₀
-
-noncomputable def tail' {a b} : G.Walk a b → Finset V
-| nil => {}
-| cons _ p => p.range
-
-lemma mem_support_iff_init₀_or_end {z} : z ∈ p.support ↔ z ∈ p.init₀ ∨ z = b := by
-  induction p with
-  | nil => simp [init₀]
-  | cons _ p ih => simp [init₀, ih, or_assoc]
-
-end Walk
-
--- namespace simple_graph
-
--- variables {V V' : Type*} [decidable_eq V] [decidable_eq V'] {f : V → V'}
--- variables {G G' : simple_graph V} {x y z u v w a b c : V}
-
--- structure Walk (G : simple_graph V) := {a b : V} (p : G.walk a b)
-
--- namespace Walk
-
--- variables {e : G.dart} {p q : G.Walk} {hep : e.snd = p.a} {hpq : p.b = q.a}
-
--- def nil (a : V) : G.Walk := ⟨(walk.nil : G.walk a a)⟩
-
--- @[simp] lemma nil_a : (nil a : G.Walk).a = a := rfl
--- @[simp] lemma nil_b : (nil b : G.Walk).b = b := rfl
-
--- def cons (e : G.dart) (p : G.Walk) (h : e.snd = p.a) : G.Walk :=
--- by { let h' := e.is_adj, rw h at h', exact ⟨p.p.cons h'⟩ }
-
-def step (e : G.Dart) : G.Walk e.fst e.snd := Walk.cons e.is_adj Walk.nil
-
--- @[simp] lemma range_step : (step e).range = {e.fst, e.snd} :=
--- by simpa only [range, step, cons, walk.support_cons, list.to_finset_cons]
-
--- @[simp] lemma range_nonempty : p.range.nonempty :=
--- begin
---   refine rec₀ _ _ p,
---   { intro u, use u, simp [range] },
---   { intros e p h q, use e.fst, simp }
--- end
-
--- def init : G.Walk → finset V :=
--- rec₀ (λ v, ∅) (λ e p h q, {e.fst} ∪ q)
-
--- @[simp] lemma init_cons : (cons e p hep).init = {e.fst} ∪ p.init := rec_cons
 
 lemma support_eq_init₀_union_last : p.support = p.init₀ ++ [b] := by
   induction p with
@@ -82,6 +35,8 @@ lemma support_eq_head_union_tail₀ : p.support = a :: p.tail₀ := by
   induction p with
   | nil => rfl
   | cons _ p ih => simp [ih, Walk.tail₀]
+
+end Walk
 
 -- def edges : G.Walk → finset G.dart :=
 -- rec₀ (λ v, ∅) (λ e p h q, {e} ∪ q)
