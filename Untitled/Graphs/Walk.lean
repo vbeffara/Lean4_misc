@@ -294,7 +294,8 @@ lemma push_eq_nil' {x y} (f : V → V') (w : V') (p : G.Walk x y) (hp : ∀ z �
 -- variables {hf : adapted f G} {p' : (map f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
 
 lemma tata {q : G.Walk c d} (h1 : a = c) (h2 : b = d) :
-    p.copy h1 h2 = q ↔ p = q.copy h1.symm h2.symm := by sorry
+    p.copy h1 h2 = q ↔ p = q.copy h1.symm h2.symm := by
+  constructor <;> rintro rfl <;> simp
 
 noncomputable def pwa2 (f : V → V') (hf : G.Adapted f) (x y : V) (x' y' : V') (hx : f x = x') (hy : f y = y')
     (p' : (G.map' f).Walk x' y') : {q : G.Walk x y // (push_Walk f q).copy hx hy = p'} := by
