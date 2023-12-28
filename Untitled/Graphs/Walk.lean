@@ -5,43 +5,19 @@ set_option autoImplicit false
 
 open Classical SimpleGraph List Finset
 
-variable {V V' : Type*} {a b c d : V} {G : SimpleGraph V} {p : G.Walk a b} {f : V → V'}
-
 namespace SimpleGraph
+
+variable {V V' : Type*} {a b c d : V} {G G' : SimpleGraph V} {f : V → V'} {p : G.Walk a b}
 
 namespace Walk
 
 noncomputable def range (p : G.Walk a b) : Finset V := p.support.toFinset
-
-@[simp] lemma range_cons {h : G.Adj a b} {p : G.Walk b c} : (cons h p).range = {a} ∪ p.range := by
-  simp [range] ; rfl
-
-@[simp] lemma range_append {q : G.Walk b c} : (append p q).range = p.range ∪ q.range := by
-  ext ; simp [range]
-
-@[simp] lemma range_copy {h1 : a = c} {h2 : b = d} :
-    (p.copy h1 h2).range = p.range := by
-  simp [range]
 
 def init₀ {a b} : G.Walk a b → List V
   | nil => []
   | cons _ p => a :: p.init₀
 
 @[simp] lemma init₀_cons {e : G.Adj c a} : (cons e p).init₀ = c :: p.init₀ := rfl
-
-noncomputable def init' {a b} : G.Walk a b → Finset V
-  | nil => {}
-  | cons _ p => insert a p.init'
-
-@[simp] lemma init₀.to_Finset : p.init₀.toFinset = p.init' := by
-  induction p with
-  | nil => rfl
-  | cons _ p ih => simp [ih, init']
-
-@[simp] lemma init'_copy {h1 : a = c} {h2 : b = d} : (p.copy h1 h2).init' = p.init' := by
-  induction p generalizing c d with
-  | nil => subst_vars ; rfl
-  | cons h p ih => rw [Walk.copy_cons] ; simp [init', ih, h1]
 
 @[simp] lemma init₀_copy {h1 : a = c} {h2 : b = d} : (p.copy h1 h2).init₀ = p.init₀ := by
   subst_vars ; rfl
@@ -58,12 +34,6 @@ lemma mem_support_iff_init₀_or_end {z} : z ∈ p.support ↔ z ∈ p.init₀ �
   | cons _ p ih => simp [init₀, ih, or_assoc]
 
 end Walk
-
-end SimpleGraph
-
--- import tactic combinatorics.simple_graph.connectivity
--- import graph_theory.path graph_theory.pushforward graph_theory.contraction
--- open classical function
 
 -- namespace simple_graph
 
@@ -86,28 +56,6 @@ end SimpleGraph
 
 def step (e : G.Dart) : G.Walk e.fst e.snd := Walk.cons e.is_adj Walk.nil
 
--- def rec₀ {motive : G.Walk → Sort*} :
---   (Π u, motive (Walk.nil u)) →
---   (Π e p h, motive p → motive (cons e p h)) →
---   Π p, motive p :=
--- λ h_nil h_cons ⟨p⟩, walk.rec_on p h_nil $ λ u v w h p, h_cons ⟨⟨_,_⟩,h⟩ ⟨p⟩ rfl
-
--- @[simp] lemma rec_nil {motive h_nil h_cons} :
---   @rec₀ V _ G motive h_nil h_cons (nil a) = h_nil a := rfl
-
--- @[simp] lemma rec_cons {motive h_nil h_cons h} :
---   @rec₀ V _ G motive h_nil h_cons (cons e p h) =
---   h_cons e p h (rec₀ h_nil h_cons p) :=
--- begin
---   rcases e with ⟨⟨u,v⟩,e⟩, rcases p with ⟨a,b,p⟩, dsimp only at h, subst v, refl
--- end
-
--- @[simp] lemma cons_a : (cons e p hep).a = e.fst := rfl
--- @[simp] lemma cons_b : (cons e p hep).b = p.b := rfl
-
--- @[simp] lemma range_cons : (cons e p hep).range = {e.fst} ∪ p.range :=
--- by simpa only [range, cons, walk.support_cons, list.to_finset_cons]
-
 -- @[simp] lemma range_step : (step e).range = {e.fst, e.snd} :=
 -- by simpa only [range, step, cons, walk.support_cons, list.to_finset_cons]
 
@@ -122,11 +70,6 @@ def step (e : G.Dart) : G.Walk e.fst e.snd := Walk.cons e.is_adj Walk.nil
 -- rec₀ (λ v, ∅) (λ e p h q, {e.fst} ∪ q)
 
 -- @[simp] lemma init_cons : (cons e p hep).init = {e.fst} ∪ p.init := rec_cons
-
-lemma range_eq_init_union_last : p.range = p.init' ∪ {b} := by
-  induction p with
-  | nil => simp [Walk.range, Walk.init']
-  | cons h p ih => simp [Walk.init', ih] ; rfl
 
 lemma support_eq_init₀_union_last : p.support = p.init₀ ++ [b] := by
   induction p with
@@ -152,58 +95,6 @@ lemma support_eq_head_union_tail₀ : p.support = a :: p.tail₀ := by
 -- @[simp] lemma edges_cons : (cons e p hep).edges = {e} ∪ p.edges := rec_cons
 
 -- lemma first_edge : e ∈ (cons e p hep).edges := by simp
-
--- @[simp] lemma range_a : (nil a : G.Walk).range = {a} := rfl
-
--- @[simp] lemma start_mem_range : p.a ∈ p.range :=
--- by { refine rec₀ _ _ p; simp }
-
--- @[simp] lemma end_mem_range : p.b ∈ p.range :=
--- by { refine rec₀ _ _ p, simp, rintro e p h q, simp, right, exact q }
-
--- lemma range_eq_support : p.range = p.p.support.to_finset :=
--- begin
---   refine rec₀ _ _ p,
---   { intro u, refl },
---   { intros e p h q, rw [range_cons,q], ext, simpa }
--- end
-
--- def append_aux (p q : G.Walk) (hpq : p.b = q.a) : {w : G.Walk // w.a = p.a ∧ w.b = q.b} :=
--- begin
---   rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩, simp only at hpq, subst c,
---   refine ⟨⟨p ++ q⟩, rfl, rfl⟩,
--- end
-
--- def append_aux' (p q : G.Walk) (hpq : p.b = q.a) : {w : G.Walk // w.a = p.a ∧ w.b = q.b} :=
--- begin
---   rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩, simp only at hpq, subst c,
---   refine ⟨⟨p ++ q⟩, rfl, rfl⟩,
--- end
-
--- def append (p q : G.Walk) (hpq : p.b = q.a) : G.Walk :=
--- (append_aux p q hpq).val
-
--- @[simp] lemma append_a : (append p q hpq).a = p.a :=
--- (append_aux p q hpq).prop.1
-
--- @[simp] lemma append_b : (append p q hpq).b = q.b :=
--- (append_aux p q hpq).prop.2
-
--- @[simp] lemma append_nil_left {haq : a = q.a} : append (nil a) q haq = q :=
--- by { subst haq, rcases q with ⟨a,b,q⟩, refl }
-
--- @[simp] lemma append_cons :
---   append (cons e p hep) q hpq = cons e (append p q hpq) (by simp [hep]) :=
--- begin
---   rcases e with ⟨⟨u,v⟩,e⟩, rcases p with ⟨a,b,p⟩, rcases q with ⟨c,d,q⟩,
---   simp at hep hpq, substs a b, refl
--- end
-
--- lemma mem_append : z ∈ (append p q hpq).p.support ↔ z ∈ p.p.support ∨ z ∈ q.p.support :=
--- begin
---   rcases p with ⟨a,b,p⟩, rcases q with ⟨d,c,q⟩, simp at hpq, subst d,
---   rw [append, append_aux], simp only [walk.mem_support_append_iff]
--- end
 
 -- noncomputable def push_step (f : V → V') (e : G.Dart) : (G.map' f).Walk (f e.fst) (f e.snd) := by
 --   by_cases h : f e.fst = f e.snd
@@ -257,9 +148,7 @@ lemma push_append (q : G.Walk b c) :
     rw [← Walk.append_copy_copy]
     congr
 
--- @[ext] lemma titi {p1 p2 : G.Walk a b} : p1.support = p2.support → p1 = p2 := sorry
-
-lemma push_eq_nil' {x y} (f : V → V') (w : V') (p : G.Walk x y) (hp : ∀ z ∈ p.support, f z = w) :
+lemma push_eq_nil' {w : V'} (hp : ∀ z ∈ p.support, f z = w) :
     (push_Walk f p).copy (hp _ p.start_mem_support) (hp _ p.end_mem_support) = Walk.nil := by
   induction p with
   | nil => simp at hp ; subst hp ; rfl
@@ -268,56 +157,29 @@ lemma push_eq_nil' {x y} (f : V → V') (w : V') (p : G.Walk x y) (hp : ∀ z �
     subst_vars
     simpa [push_Walk, hp _ (Walk.start_mem_support _)] using ih hp
 
--- lemma push_eq_nil {x y} (f : V → V') (w : V') (p : G.Walk x y) (hp : ∀ z ∈ p.support, f z = w) :
---   (push_Walk f p).Nil := sorry
--- begin
---   revert p, refine rec₀ _ _,
---   { intros, specialize hp u (by simp [Walk.nil]), simp [hp] },
---   { intros e p h ih hp,
---     have h₁ : f e.fst = w := by { apply hp, left, refl },
---     have h₂ : f e.snd = w := by { apply hp, right, rw h, exact p.p.start_mem_support },
---     rw push_cons_eq f e p h (h₁.trans h₂.symm),
---     apply ih, intros z hz, apply hp, right, exact hz }
--- end
-
--- @[simp] lemma push_step_range : (push_step f e).range = {f e.fst, f e.snd} :=
--- by { by_cases f e.fst = f e.snd; simp [push_step, push_step_aux, h] }
-
-@[simp] lemma push_range : (push_Walk f p).range = p.range.image f := by
-  induction p with
-  | nil => simp [Walk.range, push_Walk]
-  | cons h p ih =>
-    rename_i u v w
-    by_cases h' : f u = f v <;> simp [push_Walk, h', ih, Finset.image_union]
-    exact ⟨v, by simp [Walk.range], rfl⟩
-
--- variables {hf : adapted f G} {p' : (map f G).Walk} {hx : f x = p'.a} {hy : f y = p'.b}
-
-lemma tata {q : G.Walk c d} (h1 : a = c) (h2 : b = d) :
+lemma tata {q : G.Walk c d} {h1 : a = c} {h2 : b = d} :
     p.copy h1 h2 = q ↔ p = q.copy h1.symm h2.symm := by
   constructor <;> rintro rfl <;> simp
 
-noncomputable def pwa2 (f : V → V') (hf : G.Adapted f) (x y : V) (x' y' : V') (hx : f x = x') (hy : f y = y')
-    (p' : (G.map' f).Walk x' y') : {q : G.Walk x y // (push_Walk f q).copy hx hy = p'} := by
+lemma push_eq_nil {x y} (f : V → V') (w : V') (p : G.Walk x y) (hp : ∀ z ∈ p.support, f z = w) :
+    (push_Walk f p).Nil := by
+  simp [tata.mp <| push_eq_nil' hp]
+
+noncomputable def pwa2 (f : V → V') (hf : G.Adapted f) (x y : V) (x' y' : V') (hx : f x = x')
+    (hy : f y = y') (p' : (G.map' f).Walk x' y') :
+    {q : G.Walk x y // (push_Walk f q).copy hx hy = p'} := by
   induction p' generalizing x y with
   | nil =>
     choose p hp using hf (hx.trans hy.symm)
-    use p
-    subst hy
-    exact push_eq_nil' f (f y) p hp
+    exact ⟨p, hy ▸ push_eq_nil' hp⟩
   | cons h p ih =>
-    obtain ⟨h1, h2⟩ := h
-    choose l m h4 h5 h6 using id h2
+    choose l m h4 h5 h6 using id h.2
     subst_vars
     set p1 := Classical.choose <| hf h5.symm
-    have h7 := Classical.choose_spec <| hf h5.symm
-    have h8 := push_eq_nil' _ _ _ h7
+    have h8 := push_eq_nil' <| Classical.choose_spec <| hf h5.symm
     specialize ih m y rfl rfl
     use p1.append (ih.val.cons h4)
-    have := ih.prop
-    have h6 : f l ≠ f m := Eq.trans_ne h5 h1
-    rw [tata] at h8 this
-    simp [push_append, hf, push_Walk, h6, h8, this]
+    simp [push_append, hf, push_Walk, h5.trans_ne h.1, tata.mp h8, tata.mp ih.prop]
     rw [← Walk.copy_rfl_rfl (Walk.cons _ _), Walk.append_copy_copy]
     simp [Walk.copy_cons]
 
@@ -329,19 +191,6 @@ example (f : V → V') (hf : G.Adapted f) (x y : V)
     (p' : (G.map' f).Walk (f x) (f y)) : push_Walk f (pwa' f hf x y p') = p' :=
   (pwa2 f hf x y (f x) (f y) rfl rfl p').prop
 
-  -- revert p' x y, refine rec₀ _ _,
-  -- { rintros u x y hx hy, simp at hx hy, subst hy, choose p h₃ using hf hx,
-  --   refine ⟨⟨p⟩,rfl,rfl,_⟩, apply push_eq_nil, exact h₃ },
-  -- { rintros ⟨⟨u,v⟩,⟨huv,ee⟩⟩ p h ih x y hx hy,
-  --   choose xx yy h₂ h₃ h₄ using ee, substs h₃ h₄, choose p₁ h₆ using hf hx,
-  --   obtain p₂ := ih yy y (h) hy,
-  --   let pp := Walk.append ⟨p₁⟩ (p₂.val.cons ⟨⟨_,_⟩,h₂⟩ p₂.2.1.symm) rfl,
-  --   refine ⟨pp, rfl, p₂.2.2.1, _⟩,
-  --   have h₇ := push_eq_nil f (f xx) ⟨p₁⟩ h₆,
-  --   simp [pp,push_append,h₇],
-  --   have h₈ := push_cons_ne f ⟨⟨_,_⟩,h₂⟩ p₂.val p₂.2.1.symm huv, refine h₈.trans _,
-  --   congr, exact p₂.2.2.2 }
-
 noncomputable def pull_Walk_aux (f : V → V') (hf : G.Adapted f) (x y : V)
     (p' : (G.map' f).Walk (f x) (f y)) : {w : G.Walk x y // push_Walk f w = p'} := by
   exact pwa2 f hf x y (f x) (f y) rfl rfl p'
@@ -350,37 +199,9 @@ noncomputable def pull_Walk (f : V → V') (hf : G.Adapted f) (x y : V)
     (p' : (G.map' f).Walk (f x) (f y)) : G.Walk x y :=
   pull_Walk_aux f hf x y p'
 
--- lemma pull_Walk_a : (pull_Walk f hf p' x y hx hy).a = x :=
--- (pull_Walk_aux f hf p' x y hx hy).prop.1
-
--- lemma pull_Walk_b : (pull_Walk f hf p' x y hx hy).b = y :=
--- (pull_Walk_aux f hf p' x y hx hy).prop.2.1
-
 @[simp] lemma pull_Walk_push {hf x y} {p' : (G.map' f).Walk (f x) (f y)} :
     push_Walk f (pull_Walk f hf x y p') = p' :=
   (pull_Walk_aux f hf x y p').prop
-
--- def transportable_to (G' : simple_graph V) (p : G.Walk) : Prop :=
---   ∀ e : G.dart, e ∈ p.edges → G'.adj e.fst e.snd
-
--- lemma transportable_to_of_le (G_le : G ≤ G') : p.transportable_to G' :=
--- begin
---   refine rec₀ _ _ p,
---   { rintro u e h, simp [edges] at h, contradiction },
---   { rintro e p h q e' h', simp at h', cases h', rw h', exact G_le e.is_adj, exact q e' h' }
--- end
-
--- def transport (p : G.Walk) (hp : transportable_to G' p) :
---   {q : G'.Walk // q.a = p.a ∧ q.b = p.b ∧ q.range = p.range ∧ q.init = p.init ∧ q.tail = p.tail} :=
--- begin
---   revert p, refine rec₀ _ _,
---   { rintro a hp, exact ⟨nil a, rfl, rfl, rfl, rfl, rfl⟩ },
---   { rintro e p h ih hp,
---     have : transportable_to G' p :=
---       by { rintro e he, apply hp, rw [edges_cons,finset.mem_union], right, exact he },
---     specialize ih this, rcases ih with ⟨q,hq⟩, rw ←hq.1 at h,
---     exact ⟨cons ⟨⟨_,_⟩,hp e first_edge⟩ q h, by simp [hq]⟩ }
--- end
 
 lemma head_or_exists_tail {P : V → Prop} (h : ∃ v ∈ p.support, P v) : P a ∨
     (¬ P a ∧ ∃ hp : ¬ p.Nil, ∃ v ∈ (p.tail hp).support, P v) := by
@@ -437,12 +258,36 @@ noncomputable def takeUntil (p : G.Walk a b) (P : V → Prop) (h : ∃ v ∈ p.s
 
 -- def reverse (p : G.Walk) : G.Walk := ⟨p.p.reverse⟩
 
--- @[simp] lemma reverse_a : (reverse p).a = p.b := by simp only [reverse]
--- @[simp] lemma reverse_b : (reverse p).b = p.a := by simp only [reverse]
-
 -- @[simp] lemma reverse_range : (reverse p).range = p.range :=
 -- by simp only [reverse, range, walk.support_reverse, list.to_finset_reverse]
 
 -- end Walk
 
--- end simple_graph
+end SimpleGraph
+
+namespace SimpleGraph.Walk
+
+section transport
+
+variable {V : Type*} {G G' : SimpleGraph V} {a b : V} {p : G.Walk a b}
+
+def transportable_to (G' : SimpleGraph V) (p : G.Walk a b) : Prop :=
+  ∀ e ∈ p.darts, G'.Adj e.fst e.snd
+
+lemma transportable_to_of_le (G_le : G ≤ G') : transportable_to G' p := by
+  induction p with
+  | nil => simp [transportable_to]
+  | cons h p ih => simpa [transportable_to, G_le h] using ih
+
+noncomputable def transport (hp : transportable_to G' p) :
+    {q : G'.Walk a b // q.support = p.support} := by
+  induction p with
+  | nil => exact ⟨Walk.nil, rfl⟩
+  | cons h p' ih =>
+    simp [transportable_to] at hp ih
+    specialize ih hp.2
+    refine ⟨Walk.cons hp.1 ih.1, by simpa using ih.2⟩
+
+end transport
+
+end SimpleGraph.Walk

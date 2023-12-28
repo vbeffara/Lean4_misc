@@ -47,7 +47,7 @@ lemma tototo : A ∩ B = ∅ ↔ ∀ x ∈ A, x ∉ B where
     · cases h'
 
 lemma minimal_iff_minimal' (p : AB_Walk G A B) : p.minimal ↔ p.minimal' := by
-  simp [minimal, minimal', tototo, -Walk.init₀.to_Finset]
+  simp [minimal, minimal', tototo]
 
 noncomputable def lift (f : V → V') (hf : G.Adapted f)
     (p : AB_Walk (G.map' f) (A.image f) (B.image f)) : AB_Walk G A B := by
@@ -102,8 +102,11 @@ lemma trim_minimal {p : AB_Walk G A B} : p.trim.minimal := p.trim_aux.prop.1
 lemma trim_range {p : AB_Walk G A B} : p.trim.to_Walk.range ⊆ p.to_Walk.range := p.trim_aux.prop.2
 
 noncomputable def massage_aux (h : G₂ ≤ G₁) (p : AB_Walk G₂ A X) :
-    {q : AB_Walk G₁ A X // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} := by
-  -- let p' := p.trim, rcases p'.to_Walk.transport (transportable_to_of_le h) with ⟨q,qa,qb,qr,qi,qt⟩,
+    {q : AB_Walk G₁ A X // q.minimal ∧ q.to_Walk.support ⊆ p.to_Walk.support} := by
+  set p' := p.trim
+  have := p'.to_Walk.transport (Walk.transportable_to_of_le h)
+  obtain ⟨q, hq⟩ := this
+  refine ⟨⟨p'.a, p'.b, p'.ha, p'.hb, q⟩, ?_⟩
 --   refine ⟨⟨q, qa.symm ▸ p'.ha, qb.symm ▸ p'.hb⟩, _, _⟩,
 --   { rw [minimal,qi,qt], exact trim_minimal },
 --   { rw [qr], exact trim_range }
@@ -365,6 +368,10 @@ lemma meet_sub_X (X_sep_AB : Separates G A B X) (p : AB_Walk G A X) (q : AB_Walk
 --   rw mem_union at hz, cases hz; { have := ne_empty_of_mem hz, contradiction }
 -- end
 
+lemma meet_sub_X' (X_sep_AB : Separates G A B X) (p : AB_Walk G A X) (q : AB_Walk G B X)
+    (hp : p.minimal) (hq : q.minimal) :
+    ∀ x, x ∈ p.to_Walk.support → x ∈ q.to_Walk.support → x ∈ X := sorry
+
 noncomputable def endpoint (P : Finset (AB_Walk G A B)) (P_dis : pwd P) (P_eq : P.card = B.card) :
     P ≃ B := by
   refine Equiv.ofBijective (λ p => ⟨p.val.b, p.val.hb⟩) ?_
@@ -431,23 +438,23 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     left
     rw [← φxb]
     apply Walk.end_mem_support
-  have l₁ (x y z) (hz : z ∈ (φ x).val.to_Walk.range ∩ (ψ y).val.to_Walk.range) : x = y := by
-    have z_in_X : z ∈ X := meet_sub_X X_sep_AB (φ x) (ψ y) (hP (φ x)) (hQ (ψ y)) hz
-    rw [mem_inter] at hz
+  have ll (x y z) (hz1 : z ∈ (φ x).val.to_Walk.support) (hz2 : z ∈ (ψ y).val.to_Walk.support) : x = y := by
+    have z_in_X : z ∈ X := meet_sub_X' X_sep_AB (φ x) (ψ y) (hP (φ x)) (hQ (ψ y)) z hz1 hz2
     have z_is_x : z = x := by
-      apply mem_singleton.mp
-      convert ← mem_inter.mpr ⟨hz.1,z_in_X⟩
-      have := (hP (φ x)).1
-      simp at this
-      simp [range_eq_init_union_last, inter_distrib_right, φxb x, this]
+      have := (hP (φ x))
+      simp [minimal_iff_minimal', minimal'] at this
+      simp [support_eq_init₀_union_last] at hz1
+      cases hz1 with
+      | inl h => cases this.1 z h z_in_X
+      | inr h => simpa [φxb x] using h
     have z_is_y : z = y := by
-      apply mem_singleton.mp
-      convert ← mem_inter.mpr ⟨hz.2,z_in_X⟩
-      have := (hQ (ψ y)).1
-      simp at this
-      simp [range_eq_init_union_last, inter_distrib_right, ψxb y, this]
-    ext
-    exact z_is_x.symm.trans z_is_y
+      have := (hQ (ψ y))
+      simp [minimal_iff_minimal', minimal'] at this
+      simp [support_eq_init₀_union_last] at hz2
+      cases hz2 with
+      | inl h => cases this.1 z h z_in_X
+      | inr h => simpa [ψxb y] using h
+    subst_vars ; ext1 ; assumption
   have R_dis : pwd (image Ψ univ) := by
     rintro γ₁ hγ₁ γ₂ hγ₂ h_dis
     obtain ⟨x, -, hx⟩ := mem_image.mp hγ₁ ; subst hx
@@ -456,9 +463,6 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     congr
     simp [AB_Walk.Disjoint, List.Disjoint] at h_dis
     obtain ⟨a, ha₁, ha₂⟩ := h_dis
-    have l₂ := l₁ y x a
-    specialize l₁ x y a
-    simp [Walk.range] at ha₁ ha₂ l₁ l₂
     cases ha₁ with
     | inl h => cases ha₂ with
       | inl h' =>
@@ -470,9 +474,9 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
         exact P_dis a h h'
       | inr h' =>
         simp at h'
-        exact l₁ h h'
+        exact ll x y a h h'
     | inr h => cases ha₂ with
-      | inl h' => exact (l₂ h' h).symm
+      | inl h' => exact (ll y x a h' h).symm
       | inr h' =>
         specialize Q_dis (ψ x).prop (ψ y).prop
         rw [not_imp_comm, AB_Walk.Disjoint, List.Disjoint] at Q_dis
