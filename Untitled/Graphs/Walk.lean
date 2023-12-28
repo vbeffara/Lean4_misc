@@ -22,7 +22,9 @@ def init₀ {a b} : G.Walk a b → List V
 @[simp] lemma init₀_copy {h1 : a = c} {h2 : b = d} : (p.copy h1 h2).init₀ = p.init₀ := by
   subst_vars ; rfl
 
-def tail₀ (p : G.Walk a b) : List V := p.support.tail
+def tail₀ {a b} : G.Walk a b → List V-- := p.support.tail
+  | nil => []
+  | cons _ p => by rename_i c _ ; exact c :: p.tail₀
 
 noncomputable def tail' {a b} : G.Walk a b → Finset V
 | nil => {}
@@ -73,21 +75,13 @@ def step (e : G.Dart) : G.Walk e.fst e.snd := Walk.cons e.is_adj Walk.nil
 
 lemma support_eq_init₀_union_last : p.support = p.init₀ ++ [b] := by
   induction p with
-  | nil => simp [Walk.init₀]
+  | nil => rfl
   | cons _ p ih => simp [ih]
 
 lemma support_eq_head_union_tail₀ : p.support = a :: p.tail₀ := by
-  cases p <;> simp [Walk.tail₀]
-
--- by { refine rec₀ _ _ p, { intro u, refl }, { rintro e p h q, simp [q] } }
-
--- def tail : G.Walk → finset V :=
--- rec₀ (λ v, ∅) (λ e p h q, p.range)
-
--- @[simp] lemma tail_cons : (cons e p hep).tail = p.range := rec_cons
-
--- lemma range_eq_start_union_tail : p.range = {p.a} ∪ p.tail :=
--- by { refine rec₀ _ _ p, { intro, refl }, { intros, simp [*] } }
+  induction p with
+  | nil => rfl
+  | cons _ p ih => simp [ih, Walk.tail₀]
 
 -- def edges : G.Walk → finset G.dart :=
 -- rec₀ (λ v, ∅) (λ e p h q, {e} ∪ q)
