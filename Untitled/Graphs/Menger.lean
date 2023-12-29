@@ -33,9 +33,6 @@ def Disjoint (p q : AB_Walk G A B) : Prop := List.Disjoint p.to_Walk.support q.t
 def pwd (P : Finset (AB_Walk G A B)) : Prop := P.toSet.Pairwise Disjoint
 
 def minimal (p : AB_Walk G A B) : Prop :=
-  p.to_Walk.init₀.toFinset ∩ B = ∅ ∧ p.to_Walk.tail₀.toFinset ∩ A = ∅
-
-def minimal' (p : AB_Walk G A B) : Prop :=
   (∀ x ∈ p.to_Walk.init₀, x ∉ B) ∧ (∀ x ∈ p.to_Walk.tail₀, x ∉ A)
 
 lemma tototo : A ∩ B = ∅ ↔ ∀ x ∈ A, x ∉ B where
@@ -45,9 +42,6 @@ lemma tototo : A ∩ B = ∅ ↔ ∀ x ∈ A, x ∉ B where
     · obtain ⟨h1, h2⟩ := Finset.mem_inter.mp h'
       cases h x h1 h2
     · cases h'
-
-lemma minimal_iff_minimal' (p : AB_Walk G A B) : p.minimal ↔ p.minimal' := by
-  simp [minimal, minimal', tototo]
 
 noncomputable def lift (f : V → V') (hf : G.Adapted f)
     (p : AB_Walk (G.map' f) (A.image f) (B.image f)) : AB_Walk G A B := by
@@ -129,7 +123,7 @@ open AB_Walk
 --   simp_rw [←Fintype.card_coe], convert Fintype.card_le_of_injective φ this,
 -- end
 
--- lemma le_B (dis : pwd P) : P.card ≤ B.card :=
+lemma le_B {P : Finset (AB_Walk G A B)} (dis : pwd P) : P.card ≤ B.card := sorry
 -- begin
 --   let φ : P → B := λ p, ⟨p.val.b, p.val.hb⟩,
 --   have : injective φ := by { rintro p₁ p₂ h, apply dis, use p₁.val.b, simp at h, simp, simp [h] },
@@ -289,8 +283,8 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
   simp [Dart.ext_iff, Prod.ext_iff] at he
   simp [minus, Dart.edge, he] at he'
 
--- lemma sep_AB_of_sep₂_AX ⦃e : G.Dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X) :
---   Separates G A B X → Separates (G-e) A X Z → Separates G A B Z :=
+lemma sep_AB_of_sep₂_AX ⦃e : G.Dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X) :
+  Separates G A B X → Separates (G -ₑ e) A X Z → Separates G A B Z := sorry
 -- by {
 --   rintro X_sep_AB Z_sep₂_AX γ,
 --   rcases γ.to_Walk.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init,-⟩,
@@ -327,8 +321,8 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 --   { apply (p₂.val.massage_aux h).prop.2, exact hz.2 }
 -- end
 
--- lemma massage_disjoint {h : G₂ ≤ G₁} {P : Finset (AB_Walk G₂ A B)} :
---   pwd P → pwd (image (AB_Walk.massage h) P) :=
+lemma massage_disjoint {h : G₂ ≤ G₁} {P : Finset (AB_Walk G₂ A B)} :
+  pwd P → pwd (image (AB_Walk.massage h) P) := sorry
 -- begin
 --   rintro h₁ ⟨p₁,hp₁⟩ ⟨p₂,hp₂⟩ h, apply subtype.ext, dsimp,
 --   choose q₁ hq₁ hq₁' using mem_image.mp hp₁, choose q₂ hq₂ hq₂' using mem_image.mp hp₂,
@@ -337,38 +331,44 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 --   rw [hq₁',hq₂'], exact h
 -- end
 
--- lemma massage_card {h : G₂ ≤ G₁} {P : Finset (AB_Walk G₂ A B)} :
---   pwd P → (image (AB_Walk.massage h) P).card = P.card :=
+lemma massage_card {h : G₂ ≤ G₁} {P : Finset (AB_Walk G₂ A B)} :
+  pwd P → (image (AB_Walk.massage h) P).card = P.card := sorry
 -- begin
 --   rintro hP, apply card_image_of_inj_on, rintro p₁ hp₁ p₂ hp₂ he,
 --   let q₁ : P := ⟨p₁,hp₁⟩, let q₂ : P := ⟨p₂,hp₂⟩, suffices : q₁ = q₂, simp at this, exact this,
 --   apply massage_eq hP, rw he, simp
 -- end
 
-lemma meet_sub_X' (X_sep_AB : Separates G A B X) (p : AB_Walk G A X) (q : AB_Walk G B X)
+lemma meet_sub_X (X_sep_AB : Separates G A B X) (p : AB_Walk G A X) (q : AB_Walk G B X)
     (hp : p.minimal) (hq : q.minimal) :
-    ∀ x, x ∈ p.to_Walk.support → x ∈ q.to_Walk.support → x ∈ X := sorry
--- begin
---   rcases p with ⟨p,pa,pb⟩, rcases q with ⟨q,qa,qb⟩, dsimp,
---   rintro x hx, rw mem_inter at hx, cases hx with hx₁ hx₂, by_contra,
+    ∀ x, x ∈ p.to_Walk.support → x ∈ q.to_Walk.support → x ∈ X := by
+  obtain ⟨ap, bp, pa, pb, p⟩ := p
+  obtain ⟨aq, bq, qa, qb, q⟩ := q
+  intro x hx₁ hx₂
+  dsimp at hx₁ hx₂
+  by_contra
 
---   rcases p.until {x} ⟨x, by simp [hx₁]⟩ with ⟨p', p'a, p'b, p'r, p'i, p'i2, p't⟩, simp at p'b,
---   have h₁ : p'.range ∩ X = ∅ :=
---   by { rw Walk.range_eq_init_union_last, rw inter_distrib_right, rw union_eq_empty_iff, split,
---     { exact subset_empty.mp ((inter_subset_inter_right p'i2).trans (subset_empty.mpr hp.1)) },
---     { rw p'b, exact singleton_inter_of_not_mem h } },
+  obtain ⟨⟨x, rfl⟩, p', hp1, _⟩ := takeUntil_aux p (· = x) ⟨x, hx₁, rfl⟩
+  have h1 : ∀ y ∈ p'.support, y ∉ X := by
+    intro y hy
+    simp [Walk.support_eq_init₀_union_last] at hy
+    cases hy with
+    | inl h => exact hp.1 y <| Walk.init₀_subset_of_support_prefix hp1 h
+    | inr h => rwa [h]
 
---   rcases q.until {x} ⟨x, by simp [hx₂]⟩ with ⟨q', q'a, q'b, q'r, q'i, q'i2, q't⟩, simp at q'b,
---   have h₁ : q'.range ∩ X = ∅ :=
---   by { rw Walk.range_eq_init_union_last, rw inter_distrib_right, rw union_eq_empty_iff, split,
---     { exact subset_empty.mp ((inter_subset_inter_right q'i2).trans (subset_empty.mpr hq.1)) },
---     { rw q'b, exact singleton_inter_of_not_mem h } },
+  obtain ⟨⟨x, rfl⟩, q', hq1, _⟩ := takeUntil_aux q (· = x) ⟨x, hx₂, rfl⟩
+  have h2 : ∀ y ∈ q'.support, y ∉ X := by
+    intro y hy
+    simp [Walk.support_eq_init₀_union_last] at hy
+    cases hy with
+    | inl h => exact hq.1 y <| Walk.init₀_subset_of_support_prefix hq1 h
+    | inr h => rwa [h]
 
---   let γ : AB_Walk G A B :=
---   ⟨Walk.append p' q'.reverse (by simp [p'b,q'b]), by simp [p'a,pa], by simp [q'a,qa]⟩,
---   choose z hz using X_sep_AB γ, rw [range_append,reverse_range,inter_distrib_right] at hz,
---   rw mem_union at hz, cases hz; { have := ne_empty_of_mem hz, contradiction }
--- end
+  choose z hz hz' using X_sep_AB ⟨_, _, pa, qa, p'.append q'.reverse⟩
+  simp at hz'
+  cases hz' with
+  | inl h => cases h1 _ h hz
+  | inr h => cases h2 _ h hz
 
 noncomputable def endpoint (P : Finset (AB_Walk G A B)) (P_dis : pwd P) (P_eq : P.card = B.card) :
     P ≃ B := by
@@ -389,17 +389,20 @@ noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.
     (ih : ∃ (P : Finset (AB_Walk (G -ₑ e) A X)), pwd P ∧ P.card = min_cut (G -ₑ e) A X) :
     {P : Finset (AB_Walk G A X) // pwd P ∧ P.card = X.card ∧ ∀ p : P, p.val.minimal} := by
   choose P h₁ h₂ using ih
-  -- use image (AB_Walk.massage minus_le) P
-  --, refine ⟨_,_,_⟩,
---   { exact massage_disjoint h₁ },
---   { apply (massage_card h₁).trans, apply le_antisymm h₁.le_B,
---     rcases min_cut.set (G-e) A X with ⟨⟨Z,Z_sep₂_AB⟩,Z_eq_min⟩,
---     rw [X_eq_min,h₂,←Z_eq_min], apply min_cut.le',
---     exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB },
---   { intro p, choose p' hp'₁ hp'₂ using mem_image.mp p.prop,
---     have := (p'.massage_aux minus_le).prop.1, simp [AB_Walk.massage] at hp'₂, rw hp'₂ at this,
---     simp, exact this }
-  sorry
+  use image (AB_Walk.massage minus_le) P
+  refine ⟨?_, ?_, ?_⟩
+  · exact massage_disjoint h₁
+  · rw [massage_card h₁]
+    apply le_antisymm (le_B h₁)
+    rcases min_cut.set (G -ₑ e) A X with ⟨⟨Z, Z_sep₂_AB⟩, Z_eq_min⟩
+    rw [X_eq_min, h₂, ← Z_eq_min]
+    apply min_cut.le'
+    exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB
+  · intro p
+    choose p' _ hp'₂ using mem_image.mp p.prop
+    have := (p'.massage_aux minus_le).prop.1
+    simp [AB_Walk.massage] at hp'₂
+    rwa [hp'₂] at this
 
 noncomputable def stitch (X_sep_AB : Separates G A B X)
     (P : Finset (AB_Walk G A X)) (P_dis: pwd P) (P_eq_X: P.card = X.card)
@@ -424,10 +427,10 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     simp at h; simp [Walk.support_eq_init₀_union_last] at h
     cases h with
     | inl h => cases h with
-      | inl h => simp only [minimal_iff_minimal', minimal'] at hP ; cases (hP (φ x)).1 y h y.prop
+      | inl h => cases (hP (φ x)).1 y h y.prop
       | inr h => ext1 ; simpa [← φxb x]
     | inr h => cases h with
-      | inl h => simp only [minimal_iff_minimal', minimal'] at hQ ; cases (hQ (ψ x)).1 y h y.prop
+      | inl h => cases (hQ (ψ x)).1 y h y.prop
       | inr h => ext1 ; simpa [← ψxb x]
   have Ψ_inj : Injective Ψ := by
     intro x y h
@@ -438,17 +441,17 @@ noncomputable def stitch (X_sep_AB : Separates G A B X)
     rw [← φxb]
     apply Walk.end_mem_support
   have ll (x y z) (hz1 : z ∈ (φ x).val.to_Walk.support) (hz2 : z ∈ (ψ y).val.to_Walk.support) : x = y := by
-    have z_in_X : z ∈ X := meet_sub_X' X_sep_AB (φ x) (ψ y) (hP (φ x)) (hQ (ψ y)) z hz1 hz2
+    have z_in_X : z ∈ X := meet_sub_X X_sep_AB (φ x) (ψ y) (hP (φ x)) (hQ (ψ y)) z hz1 hz2
     have z_is_x : z = x := by
       have := (hP (φ x))
-      simp [minimal_iff_minimal', minimal'] at this
+      simp [minimal] at this
       simp [Walk.support_eq_init₀_union_last] at hz1
       cases hz1 with
       | inl h => cases this.1 z h z_in_X
       | inr h => simpa [φxb x] using h
     have z_is_y : z = y := by
       have := (hQ (ψ y))
-      simp [minimal_iff_minimal', minimal'] at this
+      simp [minimal] at this
       simp [Walk.support_eq_init₀_union_last] at hz2
       cases hz2 with
       | inl h => cases this.1 z h z_in_X

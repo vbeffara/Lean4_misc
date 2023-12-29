@@ -38,6 +38,14 @@ lemma support_eq_head_union_tail₀ : p.support = a :: p.tail₀ := by
   | nil => rfl
   | cons _ p ih => simp [ih, Walk.tail₀]
 
+lemma init₀_subset_of_support_prefix {p' : G.Walk a c} (h : p'.support <+: p.support) :
+    p'.init₀ ⊆ p.init₀ := by
+  induction p' with
+  | nil => simp [init₀]
+  | cons h p ih =>
+    simp [init₀, support] at h ⊢
+    sorry
+
 end Walk
 
 noncomputable def push_Walk {a b} (f : V → V') : G.Walk a b → (G.map' f).Walk (f a) (f b)
