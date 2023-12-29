@@ -1,4 +1,3 @@
--- import Mathlib
 import Untitled.Graphs.Contraction
 
 set_option autoImplicit false
@@ -10,8 +9,6 @@ namespace SimpleGraph
 variable {V V' : Type*} {a b c d : V} {G G' : SimpleGraph V} {f : V → V'} {p : G.Walk a b}
 
 namespace Walk
-
-noncomputable def range (p : G.Walk a b) : Finset V := p.support.toFinset
 
 def init₀ {a b} : G.Walk a b → List V
   | nil => []
@@ -26,6 +23,11 @@ def tail₀ {a b} : G.Walk a b → List V
   | nil => []
   | cons _ p => by rename_i c _ ; exact c :: p.tail₀
 
+@[simp] lemma tail₀_cons {e : G.Adj c a} : (cons e p).tail₀ = p.support := by
+  induction p generalizing c with
+  | nil => rfl
+  | cons h p ih => simpa [tail₀] using ih (e := h)
+
 lemma support_eq_init₀_union_last : p.support = p.init₀ ++ [b] := by
   induction p with
   | nil => rfl
@@ -37,19 +39,6 @@ lemma support_eq_head_union_tail₀ : p.support = a :: p.tail₀ := by
   | cons _ p ih => simp [ih, Walk.tail₀]
 
 end Walk
-
--- def edges : G.Walk → finset G.dart :=
--- rec₀ (λ v, ∅) (λ e p h q, {e} ∪ q)
-
--- @[simp] lemma edges_cons : (cons e p hep).edges = {e} ∪ p.edges := rec_cons
-
--- lemma first_edge : e ∈ (cons e p hep).edges := by simp
-
--- noncomputable def push_step (f : V → V') (e : G.Dart) : (G.map' f).Walk (f e.fst) (f e.snd) := by
---   by_cases h : f e.fst = f e.snd
---   · rw [h]
---   · refine @step V' (G.map' f) ⟨(f e.fst, f e.snd), ?_⟩
---     simpa [map', h] using ⟨e.fst, e.snd, e.is_adj, rfl, rfl⟩
 
 noncomputable def push_Walk {a b} (f : V → V') : G.Walk a b → (G.map' f).Walk (f a) (f b)
 | Walk.nil => Walk.nil
@@ -152,15 +141,15 @@ noncomputable def pull_Walk (f : V → V') (hf : G.Adapted f) (x y : V)
     push_Walk f (pull_Walk f hf x y p') = p' :=
   (pull_Walk_aux f hf x y p').prop
 
-lemma head_or_exists_tail {P : V → Prop} (h : ∃ v ∈ p.support, P v) : P a ∨
-    (¬ P a ∧ ∃ hp : ¬ p.Nil, ∃ v ∈ (p.tail hp).support, P v) := by
+lemma head_or_exists_tail₀ {P : V → Prop} (h : ∃ v ∈ p.support, P v) : P a ∨
+    (¬ P a ∧ ∃ v ∈ p.tail₀, P v) := by
   by_cases h1 : P a
   · left ; assumption
   · right ; simp [h1] ; by_cases h2 : p.Nil
     · cases h2 ; simp at h ; contradiction
     · cases p
       · cases h2 Walk.nil_nil
-      · exact ⟨h2, by simpa [h1] using h⟩
+      · simpa [h1] using h
 
 noncomputable def takeUntil_aux {a b} (p : G.Walk a b) (P : V → Prop) (h : ∃ v ∈ p.support, P v) :
     (c : Subtype P) × {q : G.Walk a c // q.support <+: p.support ∧ ∀ v ∈ q.init₀, ¬ P v} := by
@@ -168,9 +157,10 @@ noncomputable def takeUntil_aux {a b} (p : G.Walk a b) (P : V → Prop) (h : ∃
   | nil => simp at h ; refine ⟨⟨_, h⟩, Walk.nil, prefix_rfl, by simp [Walk.init₀]⟩
   | cons h p ih =>
     rename_i u v w e
-    apply (head_or_exists_tail h).by_cases <;> intro h1
+    apply (head_or_exists_tail₀ h).by_cases <;> intro h1
     · refine ⟨⟨u, h1⟩, Walk.nil, prefix_iff_eq_take.mpr rfl, by simp [Walk.init₀]⟩
-    · choose h2 h3 h4 using h1
+    · choose h2 h4 using h1
+      simp at h4
       cases ih h4 with | mk c q =>
         exact ⟨c, Walk.cons e q, by simp [cons_prefix_iff, q.prop.1], by simpa [h2] using q.prop.2⟩
 
@@ -205,16 +195,7 @@ noncomputable def takeUntil (p : G.Walk a b) (P : V → Prop) (h : ∃ v ∈ p.s
 --       { simp at h ⊢, exact h } } }
 -- end
 
--- def reverse (p : G.Walk) : G.Walk := ⟨p.p.reverse⟩
-
--- @[simp] lemma reverse_range : (reverse p).range = p.range :=
--- by simp only [reverse, range, walk.support_reverse, list.to_finset_reverse]
-
--- end Walk
-
-end SimpleGraph
-
-namespace SimpleGraph.Walk
+namespace Walk
 
 section transport
 

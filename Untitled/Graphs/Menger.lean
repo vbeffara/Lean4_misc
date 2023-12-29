@@ -84,7 +84,7 @@ lemma lift_inj {f : V → V'} {hf : G.Adapted f} : Injective (lift f hf (A := A)
   LeftInverse.injective push_lift
 
 noncomputable def trim_aux (p : AB_Walk G A B) :
-    {q : AB_Walk G A B // q.minimal ∧ q.to_Walk.range ⊆ p.to_Walk.range} := by
+    {q : AB_Walk G A B // q.minimal ∧ q.to_Walk.support ⊆ p.to_Walk.support} := by
 --   rcases p with ⟨p₁, p₁a, p₁b⟩,
 --   have h₁ : (p₁.range ∩ A).nonempty := ⟨p₁.a, by simp [p₁a]⟩,
 --   rcases p₁.after A h₁ with ⟨p₂, p₂a, p₂b, p₂r, p₂i, -, p₂t⟩,
@@ -99,7 +99,8 @@ noncomputable def trim (p : AB_Walk G A B) : AB_Walk G A B := p.trim_aux.val
 
 lemma trim_minimal {p : AB_Walk G A B} : p.trim.minimal := p.trim_aux.prop.1
 
-lemma trim_range {p : AB_Walk G A B} : p.trim.to_Walk.range ⊆ p.to_Walk.range := p.trim_aux.prop.2
+lemma trim_range {p : AB_Walk G A B} : p.trim.to_Walk.support ⊆ p.to_Walk.support :=
+  p.trim_aux.prop.2
 
 noncomputable def massage_aux (h : G₂ ≤ G₁) (p : AB_Walk G₂ A X) :
     {q : AB_Walk G₁ A X // q.minimal ∧ q.to_Walk.support ⊆ p.to_Walk.support} := by
@@ -112,8 +113,8 @@ noncomputable def massage_aux (h : G₂ ≤ G₁) (p : AB_Walk G₂ A X) :
 --   { rw [qr], exact trim_range }
   sorry
 
--- noncomputable def massage (h : G₂ ≤ G₁) (p : AB_Walk G₂ A X) : AB_Walk G₁ A X :=
--- (p.massage_aux h).val
+noncomputable def massage (h : G₂ ≤ G₁) (p : AB_Walk G₂ A X) : AB_Walk G₁ A X :=
+  (p.massage_aux h).val
 
 end AB_Walk
 
@@ -233,7 +234,7 @@ lemma bot_iff_no_edge : Fintype.card G.Dart = 0 ↔ G = ⊥ where
 lemma bot_Separates_iff : Separates ⊥ A B X ↔ (A ∩ B) ⊆ X where
   mp := Separates.inter_subset
   mpr := λ h ⟨a, b, ha, hb, p⟩ => by cases p with
-    | nil => exact ⟨a, by simpa [Walk.range] using h <| mem_inter_of_mem ha hb⟩
+    | nil => exact ⟨a, by simpa using h <| mem_inter_of_mem ha hb⟩
     | cons h' _ => cases h'
 
 lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card := by
@@ -254,7 +255,7 @@ lemma bot_min_cut : min_cut ⊥ A B = (A ∩ B).card := by
   rcases hp with ⟨rfl, -, h4⟩
   rcases hq with ⟨rfl, -, h8⟩
   subst_vars
-  simp [AB_Walk.Disjoint, Walk.range]
+  simp [AB_Walk.Disjoint]
   rintro rfl
   simp at h
 
@@ -344,8 +345,9 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
 --   apply massage_eq hP, rw he, simp
 -- end
 
-lemma meet_sub_X (X_sep_AB : Separates G A B X) (p : AB_Walk G A X) (q : AB_Walk G B X)
-  (hp : p.minimal) (hq : q.minimal) : p.to_Walk.range ∩ q.to_Walk.range ⊆ X := sorry
+lemma meet_sub_X' (X_sep_AB : Separates G A B X) (p : AB_Walk G A X) (q : AB_Walk G B X)
+    (hp : p.minimal) (hq : q.minimal) :
+    ∀ x, x ∈ p.to_Walk.support → x ∈ q.to_Walk.support → x ∈ X := sorry
 -- begin
 --   rcases p with ⟨p,pa,pb⟩, rcases q with ⟨q,qa,qb⟩, dsimp,
 --   rintro x hx, rw mem_inter at hx, cases hx with hx₁ hx₂, by_contra,
@@ -368,10 +370,6 @@ lemma meet_sub_X (X_sep_AB : Separates G A B X) (p : AB_Walk G A X) (q : AB_Walk
 --   rw mem_union at hz, cases hz; { have := ne_empty_of_mem hz, contradiction }
 -- end
 
-lemma meet_sub_X' (X_sep_AB : Separates G A B X) (p : AB_Walk G A X) (q : AB_Walk G B X)
-    (hp : p.minimal) (hq : q.minimal) :
-    ∀ x, x ∈ p.to_Walk.support → x ∈ q.to_Walk.support → x ∈ X := sorry
-
 noncomputable def endpoint (P : Finset (AB_Walk G A B)) (P_dis : pwd P) (P_eq : P.card = B.card) :
     P ≃ B := by
   refine Equiv.ofBijective (λ p => ⟨p.val.b, p.val.hb⟩) ?_
@@ -383,7 +381,7 @@ noncomputable def endpoint (P : Finset (AB_Walk G A B)) (P_dis : pwd P) (P_eq : 
   contrapose! this
   simp [this, AB_Walk.Disjoint, List.Disjoint]
   use p₁.val.b
-  simp [Walk.range]
+  simp
   simp [h]
 
 noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
@@ -391,7 +389,8 @@ noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.
     (ih : ∃ (P : Finset (AB_Walk (G -ₑ e) A X)), pwd P ∧ P.card = min_cut (G -ₑ e) A X) :
     {P : Finset (AB_Walk G A X) // pwd P ∧ P.card = X.card ∧ ∀ p : P, p.val.minimal} := by
   choose P h₁ h₂ using ih
-  -- use image (AB_Walk.massage minus_le) P, refine ⟨_,_,_⟩,
+  -- use image (AB_Walk.massage minus_le) P
+  --, refine ⟨_,_,_⟩,
 --   { exact massage_disjoint h₁ },
 --   { apply (massage_card h₁).trans, apply le_antisymm h₁.le_B,
 --     rcases min_cut.set (G-e) A X with ⟨⟨Z,Z_sep₂_AB⟩,Z_eq_min⟩,
