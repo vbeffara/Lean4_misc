@@ -283,12 +283,23 @@ lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card 
   simp [Dart.ext_iff, Prod.ext_iff] at he
   simp [minus, Dart.edge, he] at he'
 
-lemma sep_AB_of_sep₂_AX ⦃e : G.Dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X) :
-  Separates G A B X → Separates (G -ₑ e) A X Z → Separates G A B Z := sorry
--- by {
---   rintro X_sep_AB Z_sep₂_AX γ,
---   rcases γ.to_Walk.until X (X_sep_AB γ) with ⟨δ,δ_a,δ_b,δ_range,δ_init,-⟩,
---   have : δ.transportable_to (G-e) := by {
+lemma transportable_of_not_dart {e : G.Dart} {a b : V} {p : G.Walk a b} (h : e ∉ p.darts)
+    (h' : e.symm ∉ p.darts) : Walk.transportable_to (G -ₑ e) p := by
+  intro f hf
+  simp [minus, f.is_adj, Dart.edge]
+  intro hef
+  cases hef with
+  | inl h1 => exact h <| Dart.ext _ _ h1 ▸ hf
+  | inr h2 => rw [← Dart.symm_toProd] at h2 ; exact h' <| Dart.ext _ _ h2 ▸ hf
+
+lemma sep_AB_of_sep₂_AX ⦃e : G.Dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.snd ∈ X)
+    (X_sep_AB : Separates G A B X) (Z_sep₂_AX : Separates (G -ₑ e) A X Z) : Separates G A B Z := by
+  intro γ
+  obtain ⟨x, hx1, hx2⟩ := X_sep_AB γ
+  let δ := γ.to_Walk.takeUntil x hx2
+  have key : δ.transportable_to (G -ₑ e) := by
+    apply transportable_of_not_dart
+    sorry
 --     revert δ_init, refine Walk.rec₀ _ _ δ,
 --     { simp [Walk.transportable_to,Walk.edges] },
 --     { rintro e' p h ih h₁ e'' h₂,
@@ -304,13 +315,10 @@ lemma sep_AB_of_sep₂_AX ⦃e : G.Dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.
 --         intro h', apply this, rw [Dart.edge,sym2.mk_eq_mk_iff] at h',
 --         cases h'; { rw h', assumption } },
 --       { exact ih h₃ e'' h₂ }
---     }
---   },
---   rcases δ.transport this with ⟨ζ,ζ_a,ζ_b,ζ_range,-,-⟩,
---   rcases Z_sep₂_AX ⟨ζ, by { rw [ζ_a,δ_a], exact γ.ha }, by { rw [ζ_b], exact δ_b }⟩ with ⟨z,hz⟩,
---   rw ←ζ_range at δ_range, rw mem_inter at hz,
---   exact ⟨z, mem_inter.mpr ⟨mem_of_subset δ_range hz.1, hz.2⟩⟩,
--- }
+  obtain ⟨ζ, hζ⟩ := δ.transport key
+  obtain ⟨z, hz1, hz2⟩ := Z_sep₂_AX ⟨γ.a, x, γ.ha, hx1, ζ⟩
+  simp [hζ] at hz2
+  exact ⟨z, hz1, SimpleGraph.Walk.support_takeUntil_subset γ.to_Walk hx2 hz2⟩
 
 lemma massage_eq (hG : G₂ ≤ G₁) {P : Finset (AB_Walk G₂ A B)} {p₁ p₂ : P} (hP : pwd P)
     (h : ∃ z ∈ (p₁.val.massage hG).to_Walk.support, z ∈ (p₂.val.massage hG).to_Walk.support) :
