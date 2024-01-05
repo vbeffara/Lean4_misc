@@ -196,6 +196,10 @@ noncomputable def takeUntil_aux {a b} (p : G.Walk a b) (P : V → Prop) (h : ∃
 noncomputable def entrance (p : G.Walk a b) (P : V → Prop) (h : ∃ v ∈ p.support, P v) : V :=
   (takeUntil_aux p P h).1
 
+lemma entrance_prop {p : G.Walk a b} {P : V → Prop} {h : ∃ v ∈ p.support, P v} :
+    P (entrance p P h) :=
+  (takeUntil_aux p P h).1.prop
+
 noncomputable def takeUntil (p : G.Walk a b) (P : V → Prop) (h : ∃ v ∈ p.support, P v) :
     G.Walk a (entrance p P h) := (takeUntil_aux p P h).2.1
 

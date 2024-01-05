@@ -296,10 +296,14 @@ lemma sep_AB_of_sep₂_AX ⦃e : G.Dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.
     (X_sep_AB : Separates G A B X) (Z_sep₂_AX : Separates (G -ₑ e) A X Z) : Separates G A B Z := by
   intro γ
   obtain ⟨x, hx1, hx2⟩ := X_sep_AB γ
-  let δ := γ.to_Walk.takeUntil x hx2
-  have key : δ.transportable_to (G -ₑ e) := by
+  let δ := takeUntil γ.to_Walk (· ∈ X) ⟨x, hx2, hx1⟩
+  have key : Walk.transportable_to (G -ₑ e) δ := by
     apply transportable_of_not_dart
-    sorry
+    · sorry
+    · sorry
+    -- apply transportable_of_not_dart
+    -- sorry
+    -- sorry
 --     revert δ_init, refine Walk.rec₀ _ _ δ,
 --     { simp [Walk.transportable_to,Walk.edges] },
 --     { rintro e' p h ih h₁ e'' h₂,
@@ -316,9 +320,11 @@ lemma sep_AB_of_sep₂_AX ⦃e : G.Dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.
 --         cases h'; { rw h', assumption } },
 --       { exact ih h₃ e'' h₂ }
   obtain ⟨ζ, hζ⟩ := δ.transport key
-  obtain ⟨z, hz1, hz2⟩ := Z_sep₂_AX ⟨γ.a, x, γ.ha, hx1, ζ⟩
+  let ζ' : AB_Walk (G -ₑ e) A X := ⟨_, _, γ.ha, entrance_prop (P := (· ∈ X)), ζ⟩
+  obtain ⟨z, hz1, hz2⟩ := Z_sep₂_AX ζ'
   simp [hζ] at hz2
-  exact ⟨z, hz1, SimpleGraph.Walk.support_takeUntil_subset γ.to_Walk hx2 hz2⟩
+  have := ((takeUntil_aux γ.to_Walk (· ∈ X) ⟨x, hx2, hx1⟩).2.2.1).subset
+  refine ⟨z, hz1, this hz2⟩
 
 lemma massage_eq (hG : G₂ ≤ G₁) {P : Finset (AB_Walk G₂ A B)} {p₁ p₂ : P} (hP : pwd P)
     (h : ∃ z ∈ (p₁.val.massage hG).to_Walk.support, z ∈ (p₂.val.massage hG).to_Walk.support) :
