@@ -2,6 +2,22 @@ import Untitled.Graphs.Contraction
 
 set_option autoImplicit false
 
+namespace List
+
+variable {V : Type*}
+
+def init (l : List V) : List V := l.take (l.length - 1)
+
+lemma init_prefix {l l' : List V} (h : l <+: l') : l.init <+: l'.init := by
+  have h1 : length l ≤ length l' := List.IsPrefix.length_le h
+  have h2 : length l - 1 ≤ length l' - 1 := Nat.sub_le_sub_right h1 1
+  have h3 : (length l - 1) ≤ (length l') := h2.trans <| Nat.sub_le (length l') 1
+  rw [List.prefix_iff_eq_take] at h
+  rw [h, List.prefix_iff_eq_take]
+  simp [init, h1, List.take_take, List.take_take, min_eq_left h3, min_eq_left h2]
+
+end List
+
 open Classical SimpleGraph List Finset
 
 namespace SimpleGraph
@@ -38,13 +54,18 @@ lemma support_eq_head_union_tail₀ : p.support = a :: p.tail₀ := by
   | nil => rfl
   | cons _ p ih => simp [ih, Walk.tail₀]
 
+lemma init_eq_take_support : p.init₀ = p.support.init := by
+  induction p with
+  | nil => rfl
+  | cons _ _ ih => simp [ih, _root_.List.init]
+
+lemma init₀_prefix {p' : G.Walk a c} (h : p'.support <+: p.support) :
+    p'.init₀ <+: p.init₀ := by
+  simpa [init_eq_take_support] using init_prefix h
+
 lemma init₀_subset_of_support_prefix {p' : G.Walk a c} (h : p'.support <+: p.support) :
-    p'.init₀ ⊆ p.init₀ := by
-  induction p' with
-  | nil => simp [init₀]
-  | cons h p ih =>
-    simp [init₀, support] at h ⊢
-    sorry
+    p'.init₀ ⊆ p.init₀ :=
+  (init₀_prefix h).subset
 
 end Walk
 

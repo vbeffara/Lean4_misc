@@ -199,7 +199,7 @@ lemma inter_le_min_cut : (A ∩ B).card ≤ min_cut G A B := by
   rw [min_cut, Nat.le_find_iff]
   rintro n hn ⟨⟨X, h⟩, h'⟩
   simp only [Separator.card] at h'
-  linarith [card_le_of_subset h.inter_subset]
+  linarith [card_le_card h.inter_subset]
 
 end min_cut
 
@@ -312,32 +312,40 @@ lemma sep_AB_of_sep₂_AX ⦃e : G.Dart⦄ (ex_in_X : e.fst ∈ X) (ey_in_X : e.
 --   exact ⟨z, mem_inter.mpr ⟨mem_of_subset δ_range hz.1, hz.2⟩⟩,
 -- }
 
--- lemma massage_eq {h : G₂ ≤ G₁} {P : Finset (AB_Walk G₂ A B)} {p₁ p₂ : P} :
---   pwd P → ((p₁.val.massage h).to_Walk.range ∩ (p₂.val.massage h).to_Walk.range).nonempty →
---   p₁ = p₂ :=
--- begin
---   rintro hP h, apply hP, rcases h with ⟨z,hz⟩, use z, simp at hz ⊢, split,
---   { apply (p₁.val.massage_aux h).prop.2, exact hz.1 },
---   { apply (p₂.val.massage_aux h).prop.2, exact hz.2 }
--- end
+lemma massage_eq (hG : G₂ ≤ G₁) {P : Finset (AB_Walk G₂ A B)} {p₁ p₂ : P} (hP : pwd P)
+    (h : ∃ z ∈ (p₁.val.massage hG).to_Walk.support, z ∈ (p₂.val.massage hG).to_Walk.support) :
+    p₁ = p₂ := by
+  by_contra hp
+  obtain ⟨z, hz₁, hz₂⟩ := h
+  have h1 := (p₁.val.massage_aux hG).prop.2 hz₁
+  have h2 := (p₂.val.massage_aux hG).prop.2 hz₂
+  have h3 : p₁.1 ≠ p₂.1 := by contrapose! hp ; ext <;> rw [hp]
+  exact hP p₁.prop p₂.prop h3 h1 h2
 
-lemma massage_disjoint {h : G₂ ≤ G₁} {P : Finset (AB_Walk G₂ A B)} :
-  pwd P → pwd (image (AB_Walk.massage h) P) := sorry
--- begin
---   rintro h₁ ⟨p₁,hp₁⟩ ⟨p₂,hp₂⟩ h, apply subtype.ext, dsimp,
---   choose q₁ hq₁ hq₁' using mem_image.mp hp₁, choose q₂ hq₂ hq₂' using mem_image.mp hp₂,
---   rw [←hq₁',←hq₂'], apply congr_arg, let γ₁ : P := ⟨q₁,hq₁⟩, let γ₂ : P := ⟨q₂,hq₂⟩,
---   suffices : γ₁ = γ₂, { simp only [subtype.mk_eq_mk] at this, exact this }, apply massage_eq h₁,
---   rw [hq₁',hq₂'], exact h
--- end
+lemma massage_disjoint {h : G₂ ≤ G₁} {P : Finset (AB_Walk G₂ A B)} (h₁ : pwd P) :
+    pwd (image (AB_Walk.massage h) P) := by
+  rintro p₁ hp₁ p₂ hp₂ hp₁p₂ z hz₁ hz₂
+  apply hp₁p₂
+  choose q₁ hq₁ hq₁' using mem_image.mp hp₁
+  choose q₂ hq₂ hq₂' using mem_image.mp hp₂
+  subst_vars
+  let γ₁ : P := ⟨q₁, hq₁⟩
+  let γ₂ : P := ⟨q₂, hq₂⟩
+  congr
+  suffices γ₁ = γ₂ by simpa using this
+  exact massage_eq h h₁ ⟨z, hz₁, hz₂⟩
 
-lemma massage_card {h : G₂ ≤ G₁} {P : Finset (AB_Walk G₂ A B)} :
-  pwd P → (image (AB_Walk.massage h) P).card = P.card := sorry
--- begin
---   rintro hP, apply card_image_of_inj_on, rintro p₁ hp₁ p₂ hp₂ he,
---   let q₁ : P := ⟨p₁,hp₁⟩, let q₂ : P := ⟨p₂,hp₂⟩, suffices : q₁ = q₂, simp at this, exact this,
---   apply massage_eq hP, rw he, simp
--- end
+lemma massage_card {h : G₂ ≤ G₁} {P : Finset (AB_Walk G₂ A B)} (hP : pwd P) :
+    (image (AB_Walk.massage h) P).card = P.card := by
+  apply Finset.card_image_of_injOn
+  rintro p₁ hp₁ p₂ hp₂ he
+  let q₁ : P := ⟨p₁, hp₁⟩
+  let q₂ : P := ⟨p₂, hp₂⟩
+  suffices q₁ = q₂ by simpa using this
+  apply massage_eq h hP
+  use (massage h p₂).a
+  rw [he]
+  simp
 
 lemma meet_sub_X (X_sep_AB : Separates G A B X) (p : AB_Walk G A X) (q : AB_Walk G B X)
     (hp : p.minimal) (hq : q.minimal) :
