@@ -116,23 +116,33 @@ end AB_Walk
 
 open AB_Walk
 
--- namespace pwd
+lemma le_A {P : Finset (AB_Walk G A B)} (dis : pwd P) : P.card ≤ A.card := by
+  let φ (p : P) : A := ⟨p.val.a, p.val.ha⟩
+  have : Injective φ := by
+    rintro p₁ p₂ h
+    by_contra h'
+    have h'' : p₁.val ≠ p₂.val := by simpa [← Subtype.ext_iff]
+    have h1 : p₁.val.a ∈ p₁.val.to_Walk.support := Walk.start_mem_support _
+    have h2 : p₁.val.a ∈ p₂.val.to_Walk.support := by
+      simp at h ; rw [h]
+      exact Walk.start_mem_support _
+    exact dis p₁.prop p₂.prop h'' h1 h2
+  simp_rw [← Fintype.card_coe]
+  exact Fintype.card_le_of_injective φ this
 
--- lemma le_A (dis : pwd P) : P.card ≤ A.card :=
--- begin
---   let φ : P → A := λ p, ⟨p.1.1.a, p.1.ha⟩,
---   have : injective φ := by { rintro p₁ p₂ h, simp at h, apply dis, use p₁.1.1.a, simp, simp [h] },
---   simp_rw [←Fintype.card_coe], convert Fintype.card_le_of_injective φ this,
--- end
-
-lemma le_B {P : Finset (AB_Walk G A B)} (dis : pwd P) : P.card ≤ B.card := sorry
--- begin
---   let φ : P → B := λ p, ⟨p.val.b, p.val.hb⟩,
---   have : injective φ := by { rintro p₁ p₂ h, apply dis, use p₁.val.b, simp at h, simp, simp [h] },
---   simp_rw [←Fintype.card_coe], convert Fintype.card_le_of_injective φ this,
--- end
-
--- end pwd
+lemma le_B {P : Finset (AB_Walk G A B)} (dis : pwd P) : P.card ≤ B.card := by
+  let φ (p : P) : B := ⟨p.val.b, p.val.hb⟩
+  have : Injective φ := by
+    rintro p₁ p₂ h
+    by_contra h'
+    have h'' : p₁.val ≠ p₂.val := by simpa [← Subtype.ext_iff]
+    have h1 : p₁.val.b ∈ p₁.val.to_Walk.support := Walk.end_mem_support _
+    have h2 : p₁.val.b ∈ p₂.val.to_Walk.support := by
+      simp at h ; rw [h]
+      exact Walk.end_mem_support _
+    exact dis p₁.prop p₂.prop h'' h1 h2
+  simp_rw [← Fintype.card_coe]
+  exact Fintype.card_le_of_injective φ this
 
 def Separates (G : SimpleGraph V) (A B X : Finset V) : Prop :=
   ∀ γ : AB_Walk G A B, ∃ x ∈ X, x ∈ γ.to_Walk.support
