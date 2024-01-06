@@ -35,6 +35,10 @@ def pwd (P : Finset (AB_Walk G A B)) : Prop := P.toSet.Pairwise Disjoint
 def minimal (p : AB_Walk G A B) : Prop :=
   (∀ x ∈ p.to_Walk.init₀, x ∉ B) ∧ (∀ x ∈ p.to_Walk.tail₀, x ∉ A)
 
+lemma minimal_ext {p : AB_Walk G₁ A B} {p' : AB_Walk G₂ A B}
+    (h : p.to_Walk.support = p'.to_Walk.support) : p.minimal ↔ p'.minimal := by
+  simp_rw [minimal, Walk.init_eq_take_support, Walk.tail_eq_tail_support, h]
+
 lemma tototo : A ∩ B = ∅ ↔ ∀ x ∈ A, x ∉ B where
   mp h x hA hB := by cases h ▸ Finset.mem_inter.mpr ⟨hA, hB⟩
   mpr h := by
@@ -98,14 +102,12 @@ lemma trim_range {p : AB_Walk G A B} : p.trim.to_Walk.support ⊆ p.to_Walk.supp
 
 noncomputable def massage_aux (h : G₂ ≤ G₁) (p : AB_Walk G₂ A X) :
     {q : AB_Walk G₁ A X // q.minimal ∧ q.to_Walk.support ⊆ p.to_Walk.support} := by
-  set p' := p.trim
-  have := p'.to_Walk.transport (Walk.transportable_to_of_le h)
-  obtain ⟨q, hq⟩ := this
-  refine ⟨⟨p'.a, p'.b, p'.ha, p'.hb, q⟩, ?_⟩
---   refine ⟨⟨q, qa.symm ▸ p'.ha, qb.symm ▸ p'.hb⟩, _, _⟩,
---   { rw [minimal,qi,qt], exact trim_minimal },
---   { rw [qr], exact trim_range }
-  sorry
+  obtain ⟨q, hq⟩ := p.trim.to_Walk.transport (Walk.transportable_to_of_le h)
+  set q' : AB_Walk G₁ A X := ⟨_, _, p.trim.ha, p.trim.hb, q⟩
+  refine ⟨q', ?_, ?_⟩
+  · have : q = q'.to_Walk := rfl ; rw [this] at hq
+    simpa [minimal_ext hq] using trim_minimal
+  · simpa [hq] using trim_range
 
 noncomputable def massage (h : G₂ ≤ G₁) (p : AB_Walk G₂ A X) : AB_Walk G₁ A X :=
   (p.massage_aux h).val

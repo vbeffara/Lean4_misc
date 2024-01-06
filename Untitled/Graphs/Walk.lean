@@ -54,6 +54,11 @@ lemma support_eq_head_union_tail₀ : p.support = a :: p.tail₀ := by
   | nil => rfl
   | cons _ p ih => simp [ih, Walk.tail₀]
 
+lemma tail_eq_tail_support : p.tail₀ = p.support.tail := by
+  induction p with
+  | nil => rfl
+  | cons _ p ih => simp [ih]
+
 lemma init_eq_take_support : p.init₀ = p.support.init := by
   induction p with
   | nil => rfl
