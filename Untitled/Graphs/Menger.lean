@@ -1,6 +1,7 @@
 import Mathlib.Tactic
 import Untitled.Graphs.Contraction
 import Untitled.Graphs.Map
+import Untitled.Graphs.Minus
 import Untitled.Graphs.Walk
 
 set_option autoImplicit false
@@ -280,25 +281,10 @@ lemma AB_lift_dis {f : V → V'} {hf : G.Adapted f}
 --   exact mem_image_of_mem f h.1, exact mem_image_of_mem f h.2
 -- end
 
-def minus (G : SimpleGraph V) (e : G.Dart) : SimpleGraph V :=
-  G.deleteEdges {e.edge}
-
-infix:60 " -ₑ " => minus
-
-lemma minus_le {e : G.Dart} : G -ₑ e ≤ G := SimpleGraph.deleteEdges_le _ _
-
-lemma minus_lt_edges {e : G.Dart} : Fintype.card (G -ₑ e).Dart < Fintype.card G.Dart := by
-  let φ (f : (G -ₑ e).Dart) : G.Dart := ⟨f.1, f.is_adj.1⟩
-  have φ_inj : Injective φ := by rintro e₁ e₂ h ; ext1 ; simpa [φ] using h
-  suffices e ∉ Set.range φ from Fintype.card_lt_of_injective_of_not_mem φ φ_inj this
-  rintro ⟨⟨⟨x, y⟩, he'⟩, he⟩
-  simp [Dart.ext_iff, Prod.ext_iff] at he
-  simp [minus, Dart.edge, he] at he'
-
 lemma transportable_of_not_dart {e : G.Dart} {a b : V} {p : G.Walk a b} (h : e ∉ p.darts)
     (h' : e.symm ∉ p.darts) : Walk.transportable_to (G -ₑ e) p := by
   intro f hf
-  simp [minus, f.is_adj, Dart.edge]
+  simp [Minus, f.is_adj, Dart.edge]
   intro hef
   cases hef with
   | inl h1 => exact h <| Dart.ext _ _ h1 ▸ hf
@@ -423,7 +409,7 @@ noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.
     (ih : ∃ (P : Finset (AB_Walk (G -ₑ e) A X)), pwd P ∧ P.card = min_cut (G -ₑ e) A X) :
     {P : Finset (AB_Walk G A X) // pwd P ∧ P.card = X.card ∧ ∀ p : P, p.val.minimal} := by
   choose P h₁ h₂ using ih
-  use image (AB_Walk.massage minus_le) P
+  use image (AB_Walk.massage Minus_le) P
   refine ⟨?_, ?_, ?_⟩
   · exact massage_disjoint h₁
   · rw [massage_card h₁]
@@ -434,7 +420,7 @@ noncomputable def sep_cleanup {e : G.Dart} (ex_in_X : e.fst ∈ X) (ey_in_X : e.
     exact sep_AB_of_sep₂_AX ex_in_X ey_in_X X_sep_AB Z_sep₂_AB
   · intro p
     choose p' _ hp'₂ using mem_image.mp p.prop
-    have := (p'.massage_aux minus_le).prop.1
+    have := (p'.massage_aux Minus_le).prop.1
     simp [AB_Walk.massage] at hp'₂
     rwa [hp'₂] at this
 
