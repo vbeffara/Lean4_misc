@@ -143,8 +143,24 @@ def map' (f : V → V') (G : SimpleGraph V) : SimpleGraph V' :=
 def merge_edge [DecidableEq V] {G : SimpleGraph V} (e : G.Dart) : V → V :=
   update id e.snd e.fst
 
+def merge_sym2 (e : Sym2 V) : Type _ := by
+  let rel (x y : V) : Prop := x = y ∨ s(x, y) = e
+  have : Equivalence rel := {
+    refl := by simp
+    symm := by rintro x y (rfl | h) <;> simp [Sym2.eq_swap, *]
+    trans := by
+      rintro x y z (rfl | h₁) (rfl | h₂) <;> try { simp [*] }
+      subst_vars ; rw [Sym2.eq_swap, Sym2.congr_left] at h₂ ; simp [h₂]
+  }
+  exact Quotient ⟨rel, this⟩
+
+def merge_map (e : Sym2 V) : V → merge_sym2 e := Quotient.mk''
+
 def contract_edge (G : SimpleGraph V) [DecidableEq V] (e : G.Dart) :=
   G.map' (merge_edge e)
+
+def contract_edge' (G : SimpleGraph V) [DecidableEq V] (e : G.edgeSet) : SimpleGraph (merge_sym2 e.1) := by
+  refine G.map' <| merge_map e.1
 
 infix:60 " /ₑ " => contract_edge
 
@@ -166,7 +182,7 @@ namespace contract_edge
 -- end
 
 lemma fewer_edges [Fintype V] {e : G.Dart} :
-  Fintype.card (G /ₑ e).Dart < Fintype.card G.Dart := sorry
+  Fintype.card (G /ₑ e).edgeSet < Fintype.card G.edgeSet := sorry
 -- calc fintype.card (G/e).Dart ≤ fintype.card (preserved (merge_edge e) G) :
 --   fintype.card_le_of_surjective _ proj_edge_surj
 --                         ...  < fintype.card (G.Dart) :
